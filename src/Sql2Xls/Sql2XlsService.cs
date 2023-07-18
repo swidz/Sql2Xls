@@ -1,4 +1,5 @@
 ﻿using DocumentFormat.OpenXml.Drawing.Diagrams;
+using DocumentFormat.OpenXml.EMMA;
 using Microsoft.Extensions.Logging;
 using Sql2Xls.Excel;
 using Sql2Xls.Sql;
@@ -409,14 +410,15 @@ public class Sql2XlsService : ISql2XlsService
     private bool CheckWriteAccessToFolder(string folderPath)
     {
 
+        var di = new DirectoryInfo(folderPath);
+
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             try
             {
                 // Attempt to get a list of security permissions from the folder. 
                 // This will raise an exception if the path is read only or do not have access to view the permissions. 
-
-                var di = new DirectoryInfo(folderPath);
+        
                 DirectorySecurity ds = di.GetAccessControl();
                 return true;
             }
@@ -425,19 +427,28 @@ public class Sql2XlsService : ISql2XlsService
                 return false;
             }
         }
-        else
+        
+
+        var mode = di.UnixFileMode;
+        if (mode.HasFlag(UnixFileMode.UserRead) && mode.HasFlag(UnixFileMode.UserWrite))
         {
-            try
-            {
-                File.SetUnixFileMode(folderPath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return false;
-            }
+            return true;
         }
 
-        return true;
+        return false;
+
+        /*
+        try
+        {
+            File.SetUnixFileMode(folderPath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return false;
+        }
+        */
+
+        
     }
 
     private void CreateZipFile(string sourceDirectoryName, string destinationArchiveFileName)
