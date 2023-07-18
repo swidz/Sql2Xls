@@ -408,11 +408,10 @@ public class Sql2XlsService : ISql2XlsService
     {
         try
         {
-            var di = new DirectoryInfo(folderPath);
             // Attempt to get a list of security permissions from the folder. 
             // This will raise an exception if the path is read only or do not have access to view the permissions. 
-            
-            //TODO https://stackoverflow.com/questions/49430088/check-access-permisions-in-c-sharp-on-linux
+
+            var di = new DirectoryInfo(folderPath);
             DirectorySecurity ds = di.GetAccessControl();
             return true;
         }
