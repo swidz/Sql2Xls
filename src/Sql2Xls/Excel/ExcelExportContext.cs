@@ -32,7 +32,7 @@ namespace Sql2Xls.Excel
 
         public ExcelExportContext()
         {
-            ProviderName = "Infovision.DataMigration.Excel.ExcelExport";
+            ProviderName = "SAX";
             CanIncludeHeader = true;
             DateTimeAsString = true;
             SheetName = DEFAULT_SHEET_NAME;

@@ -13,9 +13,11 @@ public class ExcelExportODC : ExcelExport
 
     public ExcelExportODC(ILogger<ExcelExportODC> logger) : base(logger)
     {
+        _logger = logger;
     }
 
-    public override void Open()
+
+    public override SpreadsheetDocument Open()
     {
         xlDocument = SpreadsheetDocument.Create(Context.FileName, SpreadsheetDocumentType.Workbook);
 
@@ -47,6 +49,8 @@ public class ExcelExportODC : ExcelExport
         CreateWorksheetPost(xlDocument, xlWorksheetPart, xlWorksheet);
 
         __STATE = STATE_OPEN;
+
+        return xlDocument;
     }
 
     public override void AddDataRecord(IDataRecord dataRecord)

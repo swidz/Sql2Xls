@@ -79,7 +79,7 @@ public class SqlStatement
             foreach (Match m in matches)
                 return m.Groups[1].ToString();
 
-        throw new InvalidOperationException("Nestet SQL query extrtaction failed");
+        throw new InvalidOperationException("Nested SQL query extrtaction failed");
     }
 
     private static string RemoveDoubleQuotes(string sql)

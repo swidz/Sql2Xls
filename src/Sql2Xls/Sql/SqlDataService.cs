@@ -9,7 +9,12 @@ namespace Sql2Xls.Sql;
 
 public class SqlDataService : ISqlDataService
 {
-    private readonly ILogger _logger;
+    private readonly ILogger<SqlDataService> _logger;
+
+    public SqlDataService(ILogger<SqlDataService> logger)
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
 
     /// <summary>
     /// Given a provider name and connection string, create the <c>DbProviderFactory</c> and <c>DbConnection</c>

@@ -5,8 +5,6 @@ namespace Sql2Xls.Excel
 {
     public class WorksheetColumnInfo
     {
-        private readonly ILogger _logger;
-
         public bool IsInteger { get; private set; }
         public bool IsFloat { get; private set; }
         public bool IsDate { get; private set; }
@@ -62,8 +60,6 @@ namespace Sql2Xls.Excel
             IsInteger = CheckIsInteger(DataType);
 
             DateTimeAsString = ExcelExportContext.Default.DateTimeAsString;
-
-            _logger.LogTrace("Column {0} data type is {1}", ColumnName, DataType);
         }
 
         public WorksheetColumnInfo(IDataRecord record, int idx, ExcelExportContext context)

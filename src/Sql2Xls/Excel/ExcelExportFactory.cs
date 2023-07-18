@@ -26,7 +26,7 @@ public class ExcelExportFactory : IExcelExportFactory
 
         switch (context.ProviderName)
         {
-            case "Default":
+            case "LEGACY":
                 excelExport = new ExcelExport(_loggerFactory.CreateLogger<ExcelExport>());
                 break;
 

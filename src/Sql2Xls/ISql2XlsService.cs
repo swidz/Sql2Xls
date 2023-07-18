@@ -1,5 +1,6 @@
 ﻿namespace Sql2Xls;
 
-public class ISql2XlsService
+public interface ISql2XlsService
 {
+    void Run(ISql2XlsOptions options);
 }

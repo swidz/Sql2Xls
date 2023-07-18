@@ -10,11 +10,7 @@ using System.Xml.Linq;
 
 namespace Sql2Xls.Excel;
 
-public interface IExcelExxport
-{
-}
-
-public class ExcelExport : IExcelExxport, IDisposable
+public class ExcelExport : IExcelExport, IDisposable
 {
     // Flag: Has Dispose already been called?
     bool disposed = false;
@@ -24,7 +20,6 @@ public class ExcelExport : IExcelExxport, IDisposable
     protected const byte STATE_OPEN = 1;
     protected const byte STATE_IMPORT = 2;
     protected const byte STATE_CLOSED = 3;
-
 
     private ExcelExportContext _context;
     public ExcelExportContext Context 
@@ -46,14 +41,11 @@ public class ExcelExport : IExcelExxport, IDisposable
     protected WorksheetColumnCollection WorksheetColumns { get; private set; }
 
     protected SpreadsheetDocument xlDocument;
-
     protected SharedStringTablePart xlSharedStringTablePart;
     protected WorkbookPart xlWorkbookPart;
     protected int xlSharedStringsCount;
-
     protected ExcelStylesPart xlStylesPart;
     protected ExcelThemePart xlThemePart;
-
     protected WorksheetPart xlWorksheetPart;
     protected Worksheet xlWorksheet;
     protected Workbook xlWorkbook;
@@ -108,17 +100,19 @@ public class ExcelExport : IExcelExxport, IDisposable
     public void LoadFromDataTable(DataTable dataTable)
     {
         _logger.LogInformation("Generating Microsoft Excel file: {0}", Context.FileName);
+
+        InitWorksheetColumns(dataTable);
+
         using (SpreadsheetDocument document = SpreadsheetDocument.Create(
             Context.FileName, SpreadsheetDocumentType.Workbook))
-        {
-            InitWorksheetColumns(dataTable);
+        {    
             CreateFromDataTable(document, dataTable);
         }
 
         UpdateExcelArchive(Context.FileName);
     }
 
-    public virtual void Open()
+    public virtual SpreadsheetDocument Open()
     {
         xlDocument = SpreadsheetDocument.Create(Context.FileName, SpreadsheetDocumentType.Workbook);
 
@@ -130,7 +124,7 @@ public class ExcelExport : IExcelExxport, IDisposable
         xlStylesPart = new ExcelStylesPart(xlDocument, workbookStylesPartRelationshipId, Context);
         xlStylesPart.CreateWorkbookStylesPart(xlWorkbookPart);
 
-        CreateThemePart(xlDocument, xlWorkbookPart);
+        xlThemePart = CreateThemePart(xlDocument, xlWorkbookPart);
 
         xlSharedStringTablePart = CreateSharedStringTablePart(xlDocument);
 
@@ -143,6 +137,8 @@ public class ExcelExport : IExcelExxport, IDisposable
         xlSheetData = new SheetData();
 
         __STATE = STATE_OPEN;
+
+        return xlDocument;
     }
 
     protected virtual void AddHeaderRow(int rowIndex = 0)
@@ -196,14 +192,31 @@ public class ExcelExport : IExcelExxport, IDisposable
         CreateCoreFileProperties(document);
 
         var workbookPart = CreateWorkbookPart(document);
-        CreateWorkbookStylesPart(document, workbookPart);
-        xlThemePart = CreateThemePart(document, workbookPart);
+        var stylesPart = CreateWorkbookStylesPart(document, workbookPart);
+        var themePart = CreateThemePart(document, workbookPart);
         var sharedStringTablePart = CreateSharedStringTablePart(document);
         CreateSharedStringTable(document, sharedStringTablePart, dataTable);
         var sheetInfo = CreateSpreadSheetInfo();
-        CreateWorkbook(workbookPart, sheetInfo);
+        var workBook = CreateWorkbook(workbookPart, sheetInfo);
         var worksheetPart = CreateWorksheetPart(workbookPart);
-        CreateWorksheet(document, worksheetPart, dataTable);
+
+        //TODO Make ExcelExport class hierarchy stateless
+        /* Set local variables */
+        xlDocument = document;
+        //xlSharedStringTablePart;
+        xlWorkbookPart = workbookPart;
+        //xlSharedStringsCount;
+        xlStylesPart = stylesPart;
+        xlThemePart = themePart;
+        xlWorksheetPart = worksheetPart;
+        //xlWorksheet = ;
+        xlWorkbook = workBook;
+        //xlSheetData;
+
+
+    CreateWorksheet(document, worksheetPart, dataTable);
+
+
     }
 
     public void LoadFromList<T>(List<T> list)
@@ -815,7 +828,7 @@ public class ExcelExport : IExcelExxport, IDisposable
 
     protected virtual Cell CreateHeaderCell(int columnIndex, int rowIndex, string value, bool isValueSharedString = false)
     {
-        return CreateSharedStringCell(columnIndex, rowIndex, value, xlStylesPart.HeaderStyleIndex, isValueSharedString);
+        return CreateSharedStringCell(columnIndex, rowIndex, value, GetHeaderStyleIndex(), isValueSharedString);
     }
 
     private Cell CreateCell(int columnIndex, int rowIndex, string value, WorksheetColumnInfo columnInfo, bool isValueSharedString = false)
@@ -825,11 +838,11 @@ public class ExcelExport : IExcelExxport, IDisposable
         {
             if (columnInfo.IsSharedString)
             {
-                dataCell = CreateSharedStringCell(columnIndex, rowIndex, value, xlStylesPart.DoubleStyleId, isValueSharedString);
+                dataCell = CreateSharedStringCell(columnIndex, rowIndex, value, GetDoubleStyleId(), isValueSharedString);
             }
             else
             {
-                dataCell = CreateValueCell(columnIndex, rowIndex, value, xlStylesPart.DoubleStyleId);
+                dataCell = CreateValueCell(columnIndex, rowIndex, value, GetDoubleStyleId());
             }
         }
         else if (columnInfo.IsDate)
@@ -839,46 +852,46 @@ public class ExcelExport : IExcelExxport, IDisposable
             {
                 if (columnInfo.IsSharedString)
                 {
-                    dataCell = CreateSharedStringCell(columnIndex, rowIndex, value, xlStylesPart.DateStyleId, isValueSharedString);
+                    dataCell = CreateSharedStringCell(columnIndex, rowIndex, value, GetDateStyleId(), isValueSharedString);
                 }
                 else if (columnInfo.IsInlineString)
                 {
-                    dataCell = CreateInlineStringCell(columnIndex, rowIndex, value, xlStylesPart.DateStyleId);
+                    dataCell = CreateInlineStringCell(columnIndex, rowIndex, value, GetDateStyleId());
                 }
                 else
                 {
-                    dataCell = CreateStringCell(columnIndex, rowIndex, value, xlStylesPart.DateStyleId);
+                    dataCell = CreateStringCell(columnIndex, rowIndex, value, GetDateStyleId());
                 }
             }
             else
             {
-                dataCell = CreateDateCell(columnIndex, rowIndex, value, xlStylesPart.DateStyleId);
+                dataCell = CreateDateCell(columnIndex, rowIndex, value, GetDateStyleId());
             }
         }
         else if (columnInfo.IsInteger)
         {
             if (columnInfo.IsSharedString)
             {
-                dataCell = CreateSharedStringCell(columnIndex, rowIndex, value, xlStylesPart.IntegerStyleId, isValueSharedString);
+                dataCell = CreateSharedStringCell(columnIndex, rowIndex, value, GetIntegerStyleId(), isValueSharedString);
             }
             else
             {
-                dataCell = CreateValueCell(columnIndex, rowIndex, value, xlStylesPart.IntegerStyleId);
+                dataCell = CreateValueCell(columnIndex, rowIndex, value, GetIntegerStyleId());
             }
         }
         else
         {
             if (columnInfo.IsSharedString)
             {
-                dataCell = CreateSharedStringCell(columnIndex, rowIndex, value, xlStylesPart.TextStyleId, isValueSharedString);
+                dataCell = CreateSharedStringCell(columnIndex, rowIndex, value, GetTextStyleId(), isValueSharedString);
             }
             else if (columnInfo.IsInlineString)
             {
-                dataCell = CreateInlineStringCell(columnIndex, rowIndex, value, xlStylesPart.TextStyleId);
+                dataCell = CreateInlineStringCell(columnIndex, rowIndex, value, GetTextStyleId());
             }
             else
             {
-                dataCell = CreateStringCell(columnIndex, rowIndex, value, xlStylesPart.TextStyleId);
+                dataCell = CreateStringCell(columnIndex, rowIndex, value, GetTextStyleId());
             }
         }
 
@@ -1033,6 +1046,31 @@ public class ExcelExport : IExcelExxport, IDisposable
     ~ExcelExport()
     {
         Dispose(false);
+    }
+
+    protected uint GetDateStyleId()
+    {
+        return xlStylesPart?.DateStyleId ?? 0;
+    }
+
+    protected uint GetTextStyleId()
+    {
+        return xlStylesPart?.TextStyleId ?? 0;
+    }
+
+    protected uint GetIntegerStyleId()
+    {
+        return xlStylesPart?.IntegerStyleId ?? 0;
+    }
+
+    protected uint GetDoubleStyleId()
+    {
+        return xlStylesPart?.DoubleStyleId ?? 0;
+    }
+
+    protected uint GetHeaderStyleIndex()
+    {
+        return xlStylesPart?.HeaderStyleIndex ?? 0;
     }
 
 }

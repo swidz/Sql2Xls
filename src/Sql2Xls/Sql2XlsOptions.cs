@@ -11,8 +11,8 @@ public class Sql2XlsOptions : ISql2XlsOptions
 
     [Option('e', "engine",
         Required = false,
-        Default = "Infovision.DataMigration.Excel.ExportExcelSAX",
-        HelpText = "Excel export provider")]
+        Default = "SAX",
+        HelpText = "Excel export provider [\"SAX\" | \"ODC\" | \"LEGACY\"]")]
     public string ExportEngine { get; set; }
 
     [Option('f', "createfolder",
@@ -54,7 +54,7 @@ public class Sql2XlsOptions : ISql2XlsOptions
     [Option('p', "provider",
         Required = false,
         Default = "System.Data.SqlClient",
-        HelpText = "Database provider name")]
+        HelpText = "Database provider name [\"System.Data.SqlClient\" | \"Npgsql\" | \"System.Data.ODBC\"]")]
     public string DatabaseProviderName { get; set; }
 
     [Option('s', "suffix",
@@ -95,7 +95,7 @@ public class Sql2XlsOptions : ISql2XlsOptions
     public Sql2XlsOptions()
     {
         DatabaseProviderName = "System.Data.SqlClient";
-        ExportEngine = "Infovision.DataMigration.Excel.ExportExcelSAX";
+        ExportEngine = "SAX";
         LogLevel = 2;
         Source = "*.sql";
         LogFileName = "SQL2XLS.log";

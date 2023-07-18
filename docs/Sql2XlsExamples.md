@@ -1,0 +1,1 @@
+Sql2Xls.exe --input C:\datamigration\sql\ --output C:\datamigration\output\ --provider "Npgsql" --connection "postgres://sql2xls:sql2xls@127.0.0.1:5433/sql2xls" --loglevel 0 --timeout 1200 --createfolder 

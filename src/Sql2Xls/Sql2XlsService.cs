@@ -11,40 +11,144 @@ namespace Sql2Xls;
 
 public class Sql2XlsService : ISql2XlsService
 {
-    
     private readonly ISqlDataService _sqlService;
     private readonly ILogger<Sql2XlsService> _logger;
-    public readonly ILoggerFactory _loggerFactory;
-    public readonly ISql2XlsOptions _options;
-
-    private ISql2XlsOptions Context 
-    { 
-        get { return _options; } 
-    }
-
+    private readonly ILoggerFactory _loggerFactory;
+    
     private const int MAX_NAME_LENGTH = 30;
     private const string OUTPUT_FILE_EXTENSION = "xlsx";
     private const string SOURCE_SEARCH_PATTERN = "*.sql";
 
-    private string sourceFolder = String.Empty;
-    private string sourceSearchPattern = String.Empty;
-    private string destinationFile = String.Empty;
-    private string destinationFolder = String.Empty;
-
-    private string[] files = null;
-
-    public Sql2XlsService(ISql2XlsOptions options, ISqlDataService sqlService, ILoggerFactory loggerFactory)
+    public Sql2XlsService(ISqlDataService sqlService, ILoggerFactory loggerFactory)
     {
         _sqlService = sqlService ?? throw new ArgumentNullException(nameof(sqlService));
         _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
         _logger = _loggerFactory.CreateLogger<Sql2XlsService>();
     }
 
-    private void CreateDocument(string datasetName, string sqlCommand, string outputFile)
+    public void Run(ISql2XlsOptions options)
+    {
+
+        var parms = new Sql2XlsServiceParameters(options);
+
+        Init(parms);
+        CreateDestinationFolders(parms);
+
+        bool hasError = false;
+        var destinationFolders = new HashSet<string>(parms.Files.Length);
+        var tasks = new List<Tuple<string, string, string>>(parms.Files.Length);
+
+        foreach (var file in parms.Files)
+        {
+            _logger.LogInformation("Pre processing file {0}", file);
+
+            var sourceFilePath = Path.Combine(parms.SourceFolder, file);
+            _logger.LogTrace("Source file path is {0}", sourceFilePath);
+
+            var name = GetName(file, parms);
+            _logger.LogTrace("Dataset name is {0}", name);
+
+            var destinationFilePath = GetDestinationFilePath(file, parms);
+            _logger.LogTrace("Output file is {0}", destinationFilePath);
+
+            CheckDestinationFilePath(destinationFilePath, parms);
+
+            tasks.Add(Tuple.Create<string, string, string>(
+                name,
+                sourceFilePath,
+                destinationFilePath));
+        }
+
+        if (parms.Options.MaxDegreeOfParallelism == 1)
+        {
+            foreach (var task in tasks)
+            {
+                try
+                {
+                    _logger.LogInformation("Start processing file {0}", task.Item2);
+
+                    var statement = SqlStatement.Load(task.Item2).Statement;
+                    _logger.LogTrace("Statement is: {0}", statement);
+
+                    CreateDocument(task.Item1, statement, task.Item3, parms);
+
+                    _logger.LogInformation("Output file {0} was created", task.Item3);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error processing file {0}", task.Item2);
+                    hasError = true;
+                }
+            }
+        }
+        else
+        {
+            Parallel.ForEach(tasks,
+                new ParallelOptions
+                {
+                    MaxDegreeOfParallelism = parms.Options.MaxDegreeOfParallelism
+                },
+                (task) =>
+                {
+                    try
+                    {
+                        _logger.LogInformation("Start processing file {0}", task.Item2);
+
+                        var statement = SqlStatement.Load(task.Item2).Statement;
+                        _logger.LogTrace("Statement is: {0}", statement);
+
+                        CreateDocument(task.Item1, statement, task.Item3, parms);
+                        _logger.LogInformation("Output file {0} was created", task.Item3);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error processing file {0}", task.Item2);
+                        hasError = true;
+                    }
+                });
+        }
+
+        if (!String.IsNullOrEmpty(parms.Options.ZipOutputFolder))
+        {
+            if (!parms.Options.CreateOutputFolder && !Directory.Exists(parms.Options.ZipOutputFolder))
+                throw new InvalidOperationException(String.Format("Zip output directory {0} does not exist.", parms.Options.ZipOutputFolder));
+
+            try
+            {
+                if (parms.Options.CreateOutputFolder && !Directory.Exists(parms.Options.ZipOutputFolder))
+                {
+                    _logger.LogTrace("Creating zip output directory {0}", parms.Options.ZipOutputFolder);
+                    Directory.CreateDirectory(parms.Options.ZipOutputFolder);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating directory {0}", parms.Options.ZipOutputFolder);
+                throw;
+            }
+
+            foreach (string folder in destinationFolders)
+            {
+                string zipOutputPath = Path.Combine(parms.Options.ZipOutputFolder, Path.ChangeExtension(folder, "zip"));
+                this.CreateZipFile(folder, zipOutputPath);
+            }
+        }
+
+        if (hasError)
+        {
+            _logger.LogError("Process completed with errors. Please check the log file {0}", Path.Combine(parms.DestinationFolder, parms.Options.LogFileName));
+        }
+        else
+        {
+            _logger.LogInformation("Process completed.");
+        }
+    }
+
+    private void CreateDocument(string datasetName, string sqlCommand, string outputFile, Sql2XlsServiceParameters parms)
     {
         DataTable dt = _sqlService.ExecuteQuery(
-            Context.DatabaseProviderName, Context.ConnectionString,
-            sqlCommand, Context.ConnectionTimeOut);
+            parms.Options.DatabaseProviderName, parms.Options.ConnectionString,
+            sqlCommand, parms.Options.ConnectionTimeOut);
 
         dt.TableName = datasetName;
         PreprocessDataTable(dt);
@@ -52,25 +156,26 @@ public class Sql2XlsService : ISql2XlsService
         var excelContext = new ExcelExportContext()
         {
             SheetName = datasetName,
-            ProviderName = Context.ExportEngine,
+            ProviderName = parms.Options.ExportEngine,
             FileName = outputFile,
-            ODCConnectionString = Context.ConnectionString,
+            ODCConnectionString = parms.Options.ConnectionString,
             ODCSqlStatement = sqlCommand,
             ODCTableName = datasetName
         };
 
         var factory = new ExcelExportFactory(_loggerFactory);
         var excelExport = factory.Create(excelContext);
+        
         excelExport.LoadFromDataTable(dt);
     }
 
-    private void CreateDocumentFromDataRecord(string datasetName, string sqlCommand, string outputFile)
+    private void CreateDocumentFromDataRecord(string datasetName, string sqlCommand, string outputFile, Sql2XlsServiceParameters parms)
     {
         var excelContext = new ExcelExportContext()
         {
-            ProviderName = Context.ExportEngine,
+            ProviderName = parms.Options.ExportEngine,
             FileName = outputFile,
-            ODCConnectionString = Context.ConnectionString,
+            ODCConnectionString = parms.Options.ConnectionString,
             ODCSqlStatement = sqlCommand,
             ODCTableName = datasetName
         };
@@ -79,10 +184,10 @@ public class Sql2XlsService : ISql2XlsService
         var excelExport = factory.Create(excelContext);
 
         _sqlService.ExecuteQuery(
-            Context.DatabaseProviderName,
-            Context.ConnectionString,
+            parms.Options.DatabaseProviderName,
+            parms.Options.ConnectionString,
             sqlCommand,
-            Context.ConnectionTimeOut,
+            parms.Options.ConnectionTimeOut,
             (dataRecord) =>
             {
                 excelExport.AddDataRecord(dataRecord);
@@ -118,25 +223,26 @@ public class Sql2XlsService : ISql2XlsService
         }
     }
 
-    private void InitSource()
+    private void InitSource(Sql2XlsServiceParameters parms)
     {
-        sourceFolder = String.IsNullOrEmpty(Context.Source)
+        var sourceFolder = String.IsNullOrEmpty(parms.Options.Source)
             ? Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName)
-            : Path.GetDirectoryName(Context.Source);
+            : Path.GetDirectoryName(parms.Options.Source);
 
         if (String.IsNullOrEmpty(sourceFolder))
         {
-            sourceFolder = Path.GetPathRoot(Context.Source);
+            sourceFolder = Path.GetPathRoot(parms.Options.Source);
         }
         _logger.LogTrace("Source folder is {0}", sourceFolder);
+        parms.SourceFolder = sourceFolder;
 
-        sourceSearchPattern = SOURCE_SEARCH_PATTERN;
-        if (!String.IsNullOrEmpty(Context.Source) && !String.IsNullOrEmpty(Path.GetFileName(Context.Source)))
+        var sourceSearchPattern = SOURCE_SEARCH_PATTERN;
+        if (!String.IsNullOrEmpty(parms.Options.Source) && !String.IsNullOrEmpty(Path.GetFileName(parms.Options.Source)))
         {
-            sourceSearchPattern = Path.GetFileName(Context.Source);
+            sourceSearchPattern = Path.GetFileName(parms.Options.Source);
         }
-
         _logger.LogTrace("Source pattern is {0}", sourceSearchPattern);
+        parms.SourceSearchPattern = sourceSearchPattern;
 
         if (!Directory.Exists(sourceFolder))
         {
@@ -145,113 +251,114 @@ public class Sql2XlsService : ISql2XlsService
 
     }
 
-    private void InitDestination()
+    private void InitDestination(Sql2XlsServiceParameters parms)
     {
-        destinationFolder = String.IsNullOrEmpty(Context.Destination)
-            ? sourceFolder
-            : Path.GetDirectoryName(Context.Destination);
+        var destinationFolder = String.IsNullOrEmpty(parms.Options.Destination)
+            ? parms.SourceFolder
+            : Path.GetDirectoryName(parms.Options.Destination);
 
         if (String.IsNullOrEmpty(destinationFolder))
         {
-            destinationFolder = Path.GetPathRoot(Context.Destination);
+            destinationFolder = Path.GetPathRoot(parms.Options.Destination);
         }
         _logger.LogTrace("Output folder is {0}", destinationFolder);
+        parms.DestinationFolder = destinationFolder;
 
-        if (!String.IsNullOrEmpty(Context.Destination) && !String.IsNullOrEmpty(Path.GetFileName(Context.Destination)))
+        if (!String.IsNullOrEmpty(parms.Options.Destination) && !String.IsNullOrEmpty(Path.GetFileName(parms.Options.Destination)))
         {
-            destinationFile = Path.GetFileName(Context.Destination);
+            parms.DestinationFile = Path.GetFileName(parms.Options.Destination);
         }
 
-        if (!Context.CreateOutputFolder && !Directory.Exists(destinationFolder))
+        if (!parms.Options.CreateOutputFolder && !Directory.Exists(destinationFolder))
         {
             throw new InvalidOperationException(String.Format("Output directory {0} does not exist.", destinationFolder));
         }
     }
 
-    private void InitZip()
+    private void InitZip(Sql2XlsServiceParameters parms)
     {
-        if (!String.IsNullOrEmpty(Context.ZipOutputFolder))
+        if (!String.IsNullOrEmpty(parms.Options.ZipOutputFolder))
         {
-            if (!Context.CreateOutputFolder && !Directory.Exists(Context.ZipOutputFolder))
-                throw new InvalidOperationException(String.Format("Zip output directory {0} does not exist.", Context.ZipOutputFolder));
+            if (!parms.Options.CreateOutputFolder && !Directory.Exists(parms.Options.ZipOutputFolder))
+                throw new InvalidOperationException(String.Format("Zip output directory {0} does not exist.", parms.Options.ZipOutputFolder));
 
             try
             {
-                if (Context.CreateOutputFolder && !Directory.Exists(Context.ZipOutputFolder))
+                if (parms.Options.CreateOutputFolder && !Directory.Exists(parms.Options.ZipOutputFolder))
                 {
-                    _logger.LogTrace("Creating zip output directory {0}", Context.ZipOutputFolder);
-                    Directory.CreateDirectory(Context.ZipOutputFolder);
+                    _logger.LogTrace("Creating zip output directory {0}", parms.Options.ZipOutputFolder);
+                    Directory.CreateDirectory(parms.Options.ZipOutputFolder);
                 }
             }
             catch (Exception ex)
             {
 
-                _logger.LogError("Error creating directory {0} {1}", Context.ZipOutputFolder, ex.Message);
+                _logger.LogError("Error creating directory {0} {1}", parms.Options.ZipOutputFolder, ex.Message);
                 throw;
             }
         }
     }
 
-    private void InitDb()
+    private void InitDb(Sql2XlsServiceParameters parms)
     {
         try
         {
-            _sqlService.RegisterDbProviderFactory(Context.DatabaseProviderName);
+            _sqlService.RegisterDbProviderFactory(parms.Options.DatabaseProviderName);
         }
         catch (Exception ex)
         {
-            _logger.LogError("Error registering database provider {0} {1}", Context.DatabaseProviderName, ex.Message);
+            _logger.LogError("Error registering database provider {0} {1}", parms.Options.DatabaseProviderName, ex.Message);
             throw;
         }
     }
 
-    private void InitFiles()
+    private void InitFiles(Sql2XlsServiceParameters parms)
     {
-        files = System.IO.Directory.GetFiles(sourceFolder, sourceSearchPattern);
+        parms.Files = System.IO.Directory.GetFiles(parms.SourceFolder, parms.SourceSearchPattern);
 
-        if (files.Length == 0)
+        if (parms.Files.Length == 0)
         {
-            _logger.LogWarning("No files matching {0} path", Context.Source);
+            _logger.LogWarning("No files matching {0} path", parms.Options.Source);
         }
 
-        if (files.Length > 1 && !String.IsNullOrEmpty(destinationFile))
+        if (parms.Files.Length > 1 && !String.IsNullOrEmpty(parms.DestinationFile))
         {
-            destinationFile = String.Empty;
+            parms.DestinationFile = String.Empty;
         }
 
-        Array.Sort(files);
+        Array.Sort(parms.Files);
     }
 
-    private void Init()
+    private void Init(Sql2XlsServiceParameters parms)
     {
-        InitSource();
-        InitDestination();
-        InitZip();
-        InitDb();
-        InitFiles();
+        InitSource(parms);
+        InitDestination(parms);
+        InitZip(parms);
+        InitDb(parms);
+        InitFiles(parms);
     }
 
-    private void CreateDestinationFolders()
+    private void CreateDestinationFolders(Sql2XlsServiceParameters parms)
     {
-        if (files.Length > 1 && !Directory.Exists(destinationFolder))
+        if (parms.Files.Length > 1 && !Directory.Exists(parms.DestinationFolder))
         {
             try
             {
-                Directory.CreateDirectory(destinationFolder);
-                _logger.LogTrace("Creating destination folder {0}", destinationFolder);
+                Directory.CreateDirectory(parms.DestinationFolder);
+                _logger.LogTrace("Creating destination folder {0}", parms.DestinationFolder);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Creating destination folder {0}", destinationFolder);
+                _logger.LogError(ex, "Creating destination folder {0}", parms.DestinationFolder);
                 throw;
             }
         }
     }
 
-    private string GetName(string file)
+    private string GetName(string file, Sql2XlsServiceParameters parms)
     {
-        string name = Context.WorksheetName;
-        if (String.IsNullOrWhiteSpace(Context.WorksheetName))
+        string name = parms.Options.WorksheetName;
+        if (String.IsNullOrWhiteSpace(parms.Options.WorksheetName))
         {
             name = Path.GetFileNameWithoutExtension(file);
             name = name.Replace(" ", String.Empty);
@@ -263,11 +370,11 @@ public class Sql2XlsService : ISql2XlsService
         return name;
     }
 
-    private string GetDestinationFilePath(string file)
+    private string GetDestinationFilePath(string file, Sql2XlsServiceParameters parms)
     {
         string outputFilename = Path.GetFileNameWithoutExtension(file);
-        if (!String.IsNullOrEmpty(Context.OutputFileSuffix))
-            outputFilename += Context.OutputFileSuffix;
+        if (!String.IsNullOrEmpty(parms.Options.OutputFileSuffix))
+            outputFilename += parms.Options.OutputFileSuffix;
         if (string.IsNullOrEmpty(Path.GetExtension(outputFilename)))
         {
             outputFilename += ".";
@@ -278,18 +385,18 @@ public class Sql2XlsService : ISql2XlsService
             outputFilename = Path.ChangeExtension(outputFilename, OUTPUT_FILE_EXTENSION);
         }
 
-        string destinationFilePath = String.IsNullOrEmpty(destinationFile)
-            ? Path.Combine(destinationFolder, outputFilename)
-            : Path.Combine(destinationFolder, destinationFile);
+        string destinationFilePath = String.IsNullOrEmpty(parms.DestinationFile)
+            ? Path.Combine(parms.DestinationFolder, outputFilename)
+            : Path.Combine(parms.DestinationFolder, parms.DestinationFile);
 
         return destinationFilePath;
     }
 
-    private void CheckDestinationFilePath(string destinationFilePath)
+    private void CheckDestinationFilePath(string destinationFilePath, Sql2XlsServiceParameters parms)
     {
-        if (!Context.Overwrite && File.Exists(destinationFilePath))
+        if (!parms.Options.Overwrite && File.Exists(destinationFilePath))
         {
-            IOException ex = new IOException(String.Format("File {0} already exists, use -x switch to enable overwriting.", destinationFilePath));
+            var ex = new IOException(String.Format("File {0} already exists, use -x switch to enable overwriting.", destinationFilePath));
             _logger.LogError(ex, "File {0} already exists", destinationFilePath);
             throw ex;
         }
@@ -301,10 +408,10 @@ public class Sql2XlsService : ISql2XlsService
     {
         try
         {
-            DirectoryInfo di = new DirectoryInfo(folderPath);
+            var di = new DirectoryInfo(folderPath);
             // Attempt to get a list of security permissions from the folder. 
             // This will raise an exception if the path is read only or do not have access to view the permissions. 
-
+            
             //TODO https://stackoverflow.com/questions/49430088/check-access-permisions-in-c-sharp-on-linux
             DirectorySecurity ds = di.GetAccessControl();
             return true;
@@ -312,121 +419,6 @@ public class Sql2XlsService : ISql2XlsService
         catch (UnauthorizedAccessException)
         {
             return false;
-        }
-    }
-
-    public void Run()
-    {
-        Init();
-        CreateDestinationFolders();
-
-        bool hasError = false;
-        var destinationFolders = new HashSet<string>(files.Length);
-        var tasks = new List<Tuple<string, string, string>>(files.Length);
-
-        foreach (var file in files)
-        {
-            _logger.LogInformation("Pre processing file {0}", file);
-
-            string sourceFilePath = Path.Combine(sourceFolder, file);
-            _logger.LogTrace("Source file path is {0}", sourceFilePath);
-
-            string name = GetName(file);
-            _logger.LogTrace("Dataset name is {0}", name);
-
-            string destinationFilePath = GetDestinationFilePath(file);
-            _logger.LogTrace("Output file is {0}", destinationFilePath);
-
-            CheckDestinationFilePath(destinationFilePath);
-
-            tasks.Add(Tuple.Create<string, string, string>(
-                name,
-                sourceFilePath,
-                destinationFilePath));
-        }
-
-        if (Context.MaxDegreeOfParallelism == 1)
-        {
-            foreach (var task in tasks)
-            {
-                try
-                {
-                    _logger.LogInformation("Start processing file {0}", task.Item2);
-
-                    var statement = SqlStatement.Load(task.Item2).Statement;
-                    _logger.LogTrace("Statement is: {0}", statement);
-
-                    CreateDocument(task.Item1, statement, task.Item3);
-
-                    _logger.LogInformation("Output file {0} was created", task.Item3);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error processing file {0}", task.Item2);
-                    hasError = true;
-                }
-            }
-        }
-        else
-        {
-            Parallel.ForEach(tasks,
-                new ParallelOptions
-                {
-                    MaxDegreeOfParallelism = Context.MaxDegreeOfParallelism
-                },
-                (task) =>
-                {
-                    try
-                    {
-                        _logger.LogInformation("Start processing file {0}", task.Item2);
-                        
-                        var statement = SqlStatement.Load(task.Item2).Statement;
-                        _logger.LogTrace("Statement is: {0}", statement);
-
-                        CreateDocument(task.Item1, statement, task.Item3);
-                        _logger.LogInformation("Output file {0} was created", task.Item3);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error processing file {0}", task.Item2);
-                        hasError = true;
-                    }
-                });
-        }
-
-        if (!String.IsNullOrEmpty(Context.ZipOutputFolder))
-        {
-            if (!Context.CreateOutputFolder && !Directory.Exists(Context.ZipOutputFolder))
-                throw new InvalidOperationException(String.Format("Zip output directory {0} does not exist.", Context.ZipOutputFolder));
-
-            try
-            {
-                if (Context.CreateOutputFolder && !Directory.Exists(Context.ZipOutputFolder))
-                {
-                    _logger.LogTrace("Creating zip output directory {0}", Context.ZipOutputFolder);
-                    Directory.CreateDirectory(Context.ZipOutputFolder);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating directory {0}", Context.ZipOutputFolder);
-                throw;
-            }
-
-            foreach (string folder in destinationFolders)
-            {
-                string zipOutputPath = Path.Combine(Context.ZipOutputFolder, Path.ChangeExtension(folder, "zip"));
-                this.CreateZipFile(folder, zipOutputPath);
-            }
-        }
-
-        if (hasError)
-        {
-            _logger.LogError("Process completed with errors. Please check the log file {0}", Path.Combine(destinationFolder, Context.LogFileName));
-        }
-        else
-        {
-            _logger.LogInformation("Process completed.");
         }
     }
 
@@ -451,4 +443,22 @@ public class Sql2XlsService : ISql2XlsService
         }
     }
 
+    internal class Sql2XlsServiceParameters
+    {
+        private readonly ISql2XlsOptions _options;
+
+        public Sql2XlsServiceParameters(ISql2XlsOptions options)
+        {
+            _options = options ?? throw new ArgumentNullException(nameof(options));
+        }
+
+        public string SourceFolder { get; set; } = String.Empty;
+        public string SourceSearchPattern { get; set; } = String.Empty;
+        public string DestinationFile { get; set; } = String.Empty;
+        public string DestinationFolder { get; set; } = String.Empty;
+        public string[] Files { get; set; } = null;
+        public ISql2XlsOptions Options { get { return _options; } }
+
+
+    }
 }

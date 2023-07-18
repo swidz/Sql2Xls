@@ -2,20 +2,20 @@
 {
     public interface ISql2XlsOptions
     {
-        string ConnectionString { get; set; }
-        int ConnectionTimeOut { get; set; }
-        bool CreateOutputFolder { get; set; }
-        string DatabaseProviderName { get; set; }
-        string Destination { get; set; }
-        string ExportEngine { get; set; }
-        string LogFileName { get; set; }
+        string ConnectionString { get; }
+        int ConnectionTimeOut { get; }
+        bool CreateOutputFolder { get; }
+        string DatabaseProviderName { get; }
+        string Destination { get; }
+        string ExportEngine { get; }
+        string LogFileName { get; }
         string LogFullPath { get; }
-        int LogLevel { get; set; }
-        int MaxDegreeOfParallelism { get; set; }
-        string OutputFileSuffix { get; set; }
-        bool Overwrite { get; set; }
-        string Source { get; set; }
-        string WorksheetName { get; set; }
-        string ZipOutputFolder { get; set; }
+        int LogLevel { get; }
+        int MaxDegreeOfParallelism { get; }
+        string OutputFileSuffix { get;  }
+        bool Overwrite { get;  }
+        string Source { get; }
+        string WorksheetName { get;  }
+        string ZipOutputFolder { get; }
     }
 }

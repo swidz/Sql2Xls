@@ -1,0 +1,20 @@
+{
+  "profiles": {
+    "WSL": {
+      "commandName": "WSL2",
+      "distributionName": ""
+    },
+    "Sql2Xls (ODC + Postgre)": {
+      "commandName": "Project",
+      "commandLineArgs": "--input C:\\datamigration\\sql\\ --output C:\\datamigration\\output\\ --provider \"Npgsql\" --connection \"Host=127.0.0.1; Username=sql2xls; Password=sql2xls; Port=5433; Database=sql2xls;\" --loglevel 0 --timeout 1200 --createfolder --overwrite --engine ODC"
+    },
+    "Sql2Xls (SAX + Postgre)": {
+      "commandName": "Project",
+      "commandLineArgs": "--input C:\\datamigration\\sql\\ --output C:\\datamigration\\output\\ --provider \"Npgsql\" --connection \"Host=127.0.0.1; Username=sql2xls; Password=sql2xls; Port=5433; Database=sql2xls;\" --loglevel 0 --timeout 1200 --createfolder --overwrite"
+    },
+    "Sql2Xls (LEGACY + Postgre)": {
+      "commandName": "Project",
+      "commandLineArgs": "--input C:\\datamigration\\sql\\ --output C:\\datamigration\\output\\ --provider \"Npgsql\" --connection \"Host=127.0.0.1; Username=sql2xls; Password=sql2xls; Port=5433; Database=sql2xls;\" --loglevel 0 --timeout 1200 --createfolder --overwrite --engine LEGACY"
+    }
+  }
+}

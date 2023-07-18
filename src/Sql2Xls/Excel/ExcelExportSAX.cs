@@ -18,7 +18,7 @@ public class ExcelExportSAX : ExcelExport
         _logger = logger;
     }
 
-    public override void Open()
+    public override SpreadsheetDocument Open()
     {
         xlDocument = SpreadsheetDocument.Create(Context.FileName, SpreadsheetDocumentType.Workbook);
 
@@ -40,6 +40,8 @@ public class ExcelExportSAX : ExcelExport
         xlWorksheetPartXmlWriter.WriteStartElement(xlSheetData);
 
         __STATE = STATE_OPEN;
+
+        return xlDocument;
     }
 
     protected override void AddHeaderRow(int rowIndex)
@@ -330,7 +332,7 @@ public class ExcelExportSAX : ExcelExport
 
     private void CreateColumnHeaderSAX(OpenXmlWriter openXmlWriter, int columnIndex, int rowIndex, string caption, bool isValueSharedString = false)
     {
-        CreateSharedStringCellSAX(openXmlWriter, columnIndex, rowIndex, caption, xlStylesPart.HeaderStyleIndex, isValueSharedString);
+        CreateSharedStringCellSAX(openXmlWriter, columnIndex, rowIndex, caption, GetHeaderStyleIndex(), isValueSharedString);
     }
 
     private void CreateCellSAX(OpenXmlWriter openXmlWriter, int columnIndex, int rowIndex, string value, WorksheetColumnInfo columnInfo, bool isValueSharedString = false)
@@ -339,11 +341,11 @@ public class ExcelExportSAX : ExcelExport
         {
             if (columnInfo.IsSharedString)
             {
-                CreateSharedStringCellSAX(openXmlWriter, columnIndex, rowIndex, value, xlStylesPart.DoubleStyleId, isValueSharedString);
+                CreateSharedStringCellSAX(openXmlWriter, columnIndex, rowIndex, value, GetDoubleStyleId(), isValueSharedString);
             }
             else
             {
-                CreateValueCellSAX(openXmlWriter, columnIndex, rowIndex, value, xlStylesPart.DoubleStyleId);
+                CreateValueCellSAX(openXmlWriter, columnIndex, rowIndex, value, GetDoubleStyleId());
             }
         }
         else if (columnInfo.IsDate)
@@ -352,46 +354,46 @@ public class ExcelExportSAX : ExcelExport
             {
                 if (columnInfo.IsSharedString)
                 {
-                    CreateSharedStringCellSAX(openXmlWriter, columnIndex, rowIndex, value, xlStylesPart.DateStyleId, isValueSharedString);
+                    CreateSharedStringCellSAX(openXmlWriter, columnIndex, rowIndex, value, GetDateStyleId(), isValueSharedString);
                 }
                 else if (columnInfo.IsInlineString)
                 {
-                    CreateInlineStringCellSAX(openXmlWriter, columnIndex, rowIndex, value, xlStylesPart.DateStyleId);
+                    CreateInlineStringCellSAX(openXmlWriter, columnIndex, rowIndex, value, GetDateStyleId());
                 }
                 else
                 {
-                    CreateStringCellSAX(openXmlWriter, columnIndex, rowIndex, value, xlStylesPart.DateStyleId);
+                    CreateStringCellSAX(openXmlWriter, columnIndex, rowIndex, value, GetDateStyleId());
                 }
             }
             else
             {
-                CreateDateCellSAX(openXmlWriter, columnIndex, rowIndex, value, xlStylesPart.DateStyleId);
+                CreateDateCellSAX(openXmlWriter, columnIndex, rowIndex, value, GetDateStyleId());
             }
         }
         else if (columnInfo.IsInteger)
         {
             if (columnInfo.IsSharedString)
             {
-                CreateSharedStringCellSAX(openXmlWriter, columnIndex, rowIndex, value, xlStylesPart.IntegerStyleId, isValueSharedString);
+                CreateSharedStringCellSAX(openXmlWriter, columnIndex, rowIndex, value, GetIntegerStyleId(), isValueSharedString);
             }
             else
             {
-                CreateValueCellSAX(openXmlWriter, columnIndex, rowIndex, value, xlStylesPart.IntegerStyleId);
+                CreateValueCellSAX(openXmlWriter, columnIndex, rowIndex, value, GetIntegerStyleId());
             }
         }
         else
         {
             if (columnInfo.IsSharedString)
             {
-                CreateSharedStringCellSAX(openXmlWriter, columnIndex, rowIndex, value, xlStylesPart.TextStyleId, isValueSharedString);
+                CreateSharedStringCellSAX(openXmlWriter, columnIndex, rowIndex, value, GetTextStyleId(), isValueSharedString);
             }
             else if (columnInfo.IsInlineString)
             {
-                CreateInlineStringCellSAX(openXmlWriter, columnIndex, rowIndex, value, xlStylesPart.TextStyleId);
+                CreateInlineStringCellSAX(openXmlWriter, columnIndex, rowIndex, value, GetTextStyleId());
             }
             else
             {
-                CreateStringCellSAX(openXmlWriter, columnIndex, rowIndex, value, xlStylesPart.TextStyleId);
+                CreateStringCellSAX(openXmlWriter, columnIndex, rowIndex, value, GetTextStyleId());
             }
         }
     }
@@ -542,4 +544,5 @@ public class ExcelExportSAX : ExcelExport
 
         return sharedStringTable;
     }
+
 }
