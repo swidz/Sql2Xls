@@ -22,9 +22,9 @@ public class ExcelExport : IExcelExport, IDisposable
     protected const byte STATE_CLOSED = 3;
 
     private ExcelExportContext _context;
-    public ExcelExportContext Context 
-    { 
-        get 
+    public ExcelExportContext Context
+    {
+        get
         {
             if (_context is not null)
                 return _context;
@@ -86,7 +86,7 @@ public class ExcelExport : IExcelExport, IDisposable
         _logger = logger;
     }
 
-   
+
     public void InitWorksheetColumns(DataTable dataTable)
     {
         WorksheetColumns = WorksheetColumnCollection.Create(dataTable, Context);
@@ -105,7 +105,7 @@ public class ExcelExport : IExcelExport, IDisposable
 
         using (SpreadsheetDocument document = SpreadsheetDocument.Create(
             Context.FileName, SpreadsheetDocumentType.Workbook))
-        {    
+        {
             CreateFromDataTable(document, dataTable);
         }
 
@@ -214,7 +214,7 @@ public class ExcelExport : IExcelExport, IDisposable
         //xlSheetData;
 
 
-    CreateWorksheet(document, worksheetPart, dataTable);
+        CreateWorksheet(document, worksheetPart, dataTable);
 
 
     }

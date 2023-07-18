@@ -26,9 +26,9 @@ public static class ExcelHelper
                 .GetPart(document.WorkbookPart.Uri)
                 .Relationships
                 .Where(x => x.RelationshipType == relationshipType);
-                
+
             //.GetRelationshipsByType(relationshipType);
-            
+
             newPartRelationshipId = styleRelationships
                 .Where(f => f.TargetUri.OriginalString == part.Uri.OriginalString.Replace("/xl/", string.Empty).Trim())
                 .Single().Id;
@@ -37,7 +37,7 @@ public static class ExcelHelper
         return newPartRelationshipId;
     }
 
-    
+
     public static string UpdateDocumentRelationshipsPath(SpreadsheetDocument document, OpenXmlPart part, string relationshipType)
     {
         string origPartRelationshipId = document.GetIdOfPart(part);

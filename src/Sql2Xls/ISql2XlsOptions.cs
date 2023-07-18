@@ -12,10 +12,10 @@
         string LogFullPath { get; }
         int LogLevel { get; }
         int MaxDegreeOfParallelism { get; }
-        string OutputFileSuffix { get;  }
-        bool Overwrite { get;  }
+        string OutputFileSuffix { get; }
+        bool Overwrite { get; }
         string Source { get; }
-        string WorksheetName { get;  }
+        string WorksheetName { get; }
         string ZipOutputFolder { get; }
     }
 }

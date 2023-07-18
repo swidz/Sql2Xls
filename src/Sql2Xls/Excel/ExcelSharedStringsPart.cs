@@ -5,7 +5,7 @@ namespace Sql2Xls.Excel;
 
 public class ExcelSharedStringsPart : ExcelPart
 {
-    
+
     protected readonly Dictionary<string, SharedStringCacheItem> sharedStringsCache;
     public uint Count { get; private set; }
     private uint UniqueCount { get { return (uint)sharedStringsCache.Count; } }

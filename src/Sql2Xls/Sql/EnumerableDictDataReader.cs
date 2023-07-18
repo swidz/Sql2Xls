@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Sql2Xls.Sql;
+﻿namespace Sql2Xls.Sql;
 
 public class EnumerableDictDataReader : DictionaryDataReader
 {

@@ -1,9 +1,11 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using DocumentFormat.OpenXml.Drawing.Diagrams;
+using Microsoft.Extensions.Logging;
 using Sql2Xls.Excel;
 using Sql2Xls.Sql;
 using System.Data;
 using System.Diagnostics;
 using System.IO.Compression;
+using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Text.RegularExpressions;
 
@@ -14,7 +16,7 @@ public class Sql2XlsService : ISql2XlsService
     private readonly ISqlDataService _sqlService;
     private readonly ILogger<Sql2XlsService> _logger;
     private readonly ILoggerFactory _loggerFactory;
-    
+
     private const int MAX_NAME_LENGTH = 30;
     private const string OUTPUT_FILE_EXTENSION = "xlsx";
     private const string SOURCE_SEARCH_PATTERN = "*.sql";
@@ -51,7 +53,7 @@ public class Sql2XlsService : ISql2XlsService
             var destinationFilePath = GetDestinationFilePath(file, parms);
             _logger.LogTrace("Output file is {0}", destinationFilePath);
 
-            CheckDestinationFilePath(destinationFilePath, parms);
+            CheckOverwrite(destinationFilePath, parms);
 
             tasks.Add(Tuple.Create<string, string, string>(
                 name,
@@ -165,7 +167,7 @@ public class Sql2XlsService : ISql2XlsService
 
         var factory = new ExcelExportFactory(_loggerFactory);
         var excelExport = factory.Create(excelContext);
-        
+
         excelExport.LoadFromDataTable(dt);
     }
 
@@ -392,7 +394,7 @@ public class Sql2XlsService : ISql2XlsService
         return destinationFilePath;
     }
 
-    private void CheckDestinationFilePath(string destinationFilePath, Sql2XlsServiceParameters parms)
+    private void CheckOverwrite(string destinationFilePath, Sql2XlsServiceParameters parms)
     {
         if (!parms.Options.Overwrite && File.Exists(destinationFilePath))
         {
@@ -406,19 +408,36 @@ public class Sql2XlsService : ISql2XlsService
 
     private bool CheckWriteAccessToFolder(string folderPath)
     {
-        try
-        {
-            // Attempt to get a list of security permissions from the folder. 
-            // This will raise an exception if the path is read only or do not have access to view the permissions. 
 
-            var di = new DirectoryInfo(folderPath);
-            DirectorySecurity ds = di.GetAccessControl();
-            return true;
-        }
-        catch (UnauthorizedAccessException)
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            return false;
+            try
+            {
+                // Attempt to get a list of security permissions from the folder. 
+                // This will raise an exception if the path is read only or do not have access to view the permissions. 
+
+                var di = new DirectoryInfo(folderPath);
+                DirectorySecurity ds = di.GetAccessControl();
+                return true;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return false;
+            }
         }
+        else
+        {
+            try
+            {
+                File.SetUnixFileMode(folderPath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private void CreateZipFile(string sourceDirectoryName, string destinationArchiveFileName)
