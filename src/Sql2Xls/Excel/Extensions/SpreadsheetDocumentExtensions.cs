@@ -2,14 +2,14 @@
 using DocumentFormat.OpenXml.Packaging;
 using System.IO.Packaging;
 
-namespace Sql2Xls.Excel;
+namespace Sql2Xls.Excel.Extensions;
 
-public static class ExcelHelper
+public static class SpreadsheetDocumentExtensions
 {
     //https://www.developerfusion.com/article/84390/programming-office-documents-with-open-xml/
     //https://stackoverflow.com/questions/10929054/openxml-spreadsheet-created-in-net-wont-open-in-ipad/15524301
 
-    public static string UpdateWorkbookRelationshipsPath(SpreadsheetDocument document, OpenXmlPart part, string relationshipType)
+    public static string UpdateWorkbookRelationshipsPath(this SpreadsheetDocument document, OpenXmlPart part, string relationshipType)
     {
         string origPartRelationshipId = document.WorkbookPart.GetIdOfPart(part);
         string newPartRelationshipId = origPartRelationshipId;
@@ -38,7 +38,7 @@ public static class ExcelHelper
     }
 
 
-    public static string UpdateDocumentRelationshipsPath(SpreadsheetDocument document, OpenXmlPart part, string relationshipType)
+    public static string UpdateDocumentRelationshipsPath(this SpreadsheetDocument document, OpenXmlPart part, string relationshipType)
     {
         string origPartRelationshipId = document.GetIdOfPart(part);
         string newPartRelationshipId = origPartRelationshipId;

@@ -1,20 +1,9 @@
 ﻿namespace Sql2Xls.Excel;
 
-public sealed class SharedStringCacheItem
+public readonly struct SharedStringCacheItem
 {
-    public int Position { get; set; }
-    public string Value { get; set; }
-
-    public SharedStringCacheItem(int position, string value)
-    {
-        Position = position;
-        Value = value;
-    }
-
-    public static SharedStringCacheItem Create(int position, string value)
-    {
-        return new SharedStringCacheItem(position, value);
-    }
+    public int Position { get; init; }
+    public string Value { get; init; }
 
     public override string ToString()
     {

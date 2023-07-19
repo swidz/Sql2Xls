@@ -1,8 +1,9 @@
 ﻿using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using Sql2Xls.Excel.Extensions;
 
-namespace Sql2Xls.Excel;
+namespace Sql2Xls.Excel.Parts;
 
 public class ExcelStylesPart : ExcelPart
 {
@@ -32,7 +33,7 @@ public class ExcelStylesPart : ExcelPart
 
         if (Context.CanUseRelativePaths)
         {
-            RelationshipId = ExcelHelper.UpdateWorkbookRelationshipsPath(Document, stylesPart, stylesRelationshipType);
+            RelationshipId = Document.UpdateWorkbookRelationshipsPath(stylesPart, stylesRelationshipType);
         }
 
         //http://www.lateral8.com/articles/openxml-format-excel-values.html

@@ -1,4 +1,4 @@
-﻿namespace Sql2Xls
+﻿namespace Sql2Xls.Interfaces
 {
     public interface ISql2XlsOptions
     {

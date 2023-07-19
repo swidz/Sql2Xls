@@ -2,18 +2,20 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Extensions.Logging;
+using Sql2Xls.Excel.Extensions;
+using Sql2Xls.Excel.Parts;
 using System.Data;
 
-namespace Sql2Xls.Excel;
+namespace Sql2Xls.Excel.Adapters;
 
 
-public class ExcelExportSAX : ExcelExport
+public class ExcelExportSAXAdapter : ExcelExportAdapter
 {
-    private readonly ILogger<ExcelExportSAX> _logger;
+    private readonly ILogger<ExcelExportSAXAdapter> _logger;
 
     private OpenXmlWriter xlWorksheetPartXmlWriter;
 
-    public ExcelExportSAX(ILogger<ExcelExportSAX> logger) : base(logger)
+    public ExcelExportSAXAdapter(ILogger<ExcelExportSAXAdapter> logger) : base(logger)
     {
         _logger = logger;
     }
@@ -53,7 +55,7 @@ public class ExcelExportSAX : ExcelExport
     private void CreateHeaderRow(OpenXmlWriter openXmlWriter, int rowIndex, bool preCacheSharedString = true)
     {
         openXmlWriter.WriteStartElement(new Row { RowIndex = (uint)rowIndex + 1 });
-        for (int colIndex = 0; colIndex < WorksheetColumns.ColumnCount; colIndex++)
+        for (int colIndex = 0; colIndex < WorksheetColumns.Count; colIndex++)
         {
             var columnInfo = WorksheetColumns[colIndex];
             string valueStr = columnInfo.Caption;
@@ -62,7 +64,7 @@ public class ExcelExportSAX : ExcelExport
             {
                 if (!sharedStringsCache.TryGetValue(valueStr, out SharedStringCacheItem item))
                 {
-                    item = SharedStringCacheItem.Create(sharedStringsCache.Count, valueStr);
+                    item = new SharedStringCacheItem { Position = sharedStringsCache.Count, Value = valueStr };
                     sharedStringsCache.Add(valueStr, item);
                 }
                 valueStr = item.Position.ToString();
@@ -96,7 +98,7 @@ public class ExcelExportSAX : ExcelExport
     private void CreateRowFromRecordSAX(OpenXmlWriter openXmlWriter, IDataRecord record, int rowIndex, bool preCacheSharedString = true)
     {
         openXmlWriter.WriteStartElement(new Row { RowIndex = (uint)rowIndex + 1 });
-        for (int colIndex = 0; colIndex < WorksheetColumns.ColumnCount; colIndex++)
+        for (int colIndex = 0; colIndex < WorksheetColumns.Count; colIndex++)
         {
             var columnInfo = WorksheetColumns[colIndex];
             string valueStr = GetValue(record[colIndex], columnInfo);
@@ -105,7 +107,7 @@ public class ExcelExportSAX : ExcelExport
             {
                 if (!sharedStringsCache.TryGetValue(valueStr, out SharedStringCacheItem item))
                 {
-                    item = SharedStringCacheItem.Create(sharedStringsCache.Count, valueStr);
+                    item = new SharedStringCacheItem { Position = sharedStringsCache.Count, Value = valueStr };
                     sharedStringsCache.Add(valueStr, item);
                 }
                 valueStr = item.Position.ToString();
@@ -210,17 +212,17 @@ public class ExcelExportSAX : ExcelExport
         var openXmlAttributes = new List<OpenXmlAttribute>
         {
             new OpenXmlAttribute("Ignorable", "mc", "x14ac xr xr2 xr3"),
-            new OpenXmlAttribute("xr", "uid", "http://schemas.microsoft.com/office/spreadsheetml/2014/revision", "{00000000-0001-0000-0000-000000000000}")
+            new OpenXmlAttribute("xr", "uid", ExcelConstants.SpreadsheetMlRev1, "{00000000-0001-0000-0000-000000000000}")
         };
 
         var namespaceDeclarations = new List<KeyValuePair<string, string>>
         {
-            KeyValuePair.Create("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships"),
-            KeyValuePair.Create("mc", "http://schemas.openxmlformats.org/markup-compatibility/2006"),
-            KeyValuePair.Create("x14ac", "http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac"),
-            KeyValuePair.Create("xr", "http://schemas.microsoft.com/office/spreadsheetml/2014/revision"),
-            KeyValuePair.Create("xr2", "http://schemas.microsoft.com/office/spreadsheetml/2015/revision2"),
-            KeyValuePair.Create("xr3", "http://schemas.microsoft.com/office/spreadsheetml/2016/revision3")
+            KeyValuePair.Create("r", ExcelConstants.RelationshipsNamespace),
+            KeyValuePair.Create("mc", ExcelConstants.MarkupCompatibility),
+            KeyValuePair.Create("x14ac", ExcelConstants.SpreadsheetMlAc),
+            KeyValuePair.Create("xr", ExcelConstants.SpreadsheetMlRev1),
+            KeyValuePair.Create("xr2", ExcelConstants.SpreadsheetMlRev2),
+            KeyValuePair.Create("xr3", ExcelConstants.SpreadsheetMlRev3)
         };
 
         Worksheet worksheet = new Worksheet();
@@ -228,7 +230,7 @@ public class ExcelExportSAX : ExcelExport
 
         if (Context.CanUseRelativePaths)
         {
-            worksheetPartRelationshipId = ExcelHelper.UpdateWorkbookRelationshipsPath(document, worksheetPart, worksheetRelationshipType);
+            worksheetPartRelationshipId = document.UpdateWorkbookRelationshipsPath(worksheetPart, ExcelConstants.WorksheetRelationshipType);
         }
 
         /*
@@ -260,7 +262,7 @@ public class ExcelExportSAX : ExcelExport
             new Column
             {
                 Min = UInt32Value.FromUInt32(1U),
-                Max = UInt32Value.FromUInt32((uint)WorksheetColumns.ColumnCount),
+                Max = UInt32Value.FromUInt32((uint)WorksheetColumns.Count),
                 Width = DoubleValue.FromDouble(20D),
                 CustomWidth = BooleanValue.FromBoolean(true)
             });
@@ -306,7 +308,7 @@ public class ExcelExportSAX : ExcelExport
         int numOfRows = dataTable.Rows.Count;
 
         openXmlWriter.WriteStartElement(new Row { RowIndex = (uint)rowIndex + 1 });
-        for (int colIndex = 0; colIndex < WorksheetColumns.ColumnCount; colIndex++)
+        for (int colIndex = 0; colIndex < WorksheetColumns.Count; colIndex++)
         {
             var columnInfo = WorksheetColumns[colIndex];
             CreateColumnHeaderSAX(openXmlWriter, colIndex, rowIndex, columnInfo.Caption, false);
@@ -317,7 +319,7 @@ public class ExcelExportSAX : ExcelExport
         foreach (DataRow dsrow in dataTable.Rows)
         {
             openXmlWriter.WriteStartElement(new Row { RowIndex = (uint)rowIndex + 1 });
-            for (int colIndex = 0; colIndex < WorksheetColumns.ColumnCount; colIndex++)
+            for (int colIndex = 0; colIndex < WorksheetColumns.Count; colIndex++)
             {
                 CreateCellFromDataTypeSAX(openXmlWriter, colIndex, rowIndex, dsrow[colIndex]);
             }
@@ -327,7 +329,7 @@ public class ExcelExportSAX : ExcelExport
 
         openXmlWriter.WriteEndElement();
 
-        _logger.LogTrace("{0} records with {1} columns has been added.", numOfRows, WorksheetColumns.ColumnCount);
+        _logger.LogTrace("{0} records with {1} columns has been added.", numOfRows, WorksheetColumns.Count);
     }
 
     private void CreateColumnHeaderSAX(OpenXmlWriter openXmlWriter, int columnIndex, int rowIndex, string caption, bool isValueSharedString = false)
@@ -484,18 +486,18 @@ public class ExcelExportSAX : ExcelExport
         int count = 0;
         int uniqueCount = 0;
 
-        for (int colIndex = 0; colIndex < WorksheetColumns.ColumnCount; colIndex++)
+        for (int colIndex = 0; colIndex < WorksheetColumns.Count; colIndex++)
         {
             var columnInfo = WorksheetColumns[colIndex];
             if (!sharedStringsCache.ContainsKey(columnInfo.ColumnName))
             {
-                sharedStringsCache.Add(columnInfo.ColumnName, SharedStringCacheItem.Create(uniqueCount, columnInfo.ColumnName));
+                sharedStringsCache.Add(columnInfo.ColumnName, new SharedStringCacheItem { Position = uniqueCount, Value = columnInfo.ColumnName });
                 uniqueCount++;
             }
         }
         count += dataTable.Columns.Count;
 
-        for (int colIndex = 0; colIndex < WorksheetColumns.ColumnCount; colIndex++)
+        for (int colIndex = 0; colIndex < WorksheetColumns.Count; colIndex++)
         {
             var columnInfo = WorksheetColumns[colIndex];
             if (!columnInfo.IsSharedString)
@@ -511,7 +513,7 @@ public class ExcelExportSAX : ExcelExport
                 string resultValue = GetValue(val, columnInfo);
                 if (!sharedStringsCache.ContainsKey(resultValue))
                 {
-                    sharedStringsCache.Add(resultValue, SharedStringCacheItem.Create(uniqueCount, resultValue));
+                    sharedStringsCache.Add(resultValue, new SharedStringCacheItem { Position = uniqueCount, Value = resultValue });
                     uniqueCount++;
                 }
             }

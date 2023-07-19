@@ -1,12 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
+using Sql2Xls.Interfaces;
 
-namespace Sql2Xls.Excel;
-
-
-public interface IExcelExportFactory
-{
-    ExcelExport Create(ExcelExportContext context);
-}
+namespace Sql2Xls.Excel.Adapters;
 
 public class ExcelExportFactory : IExcelExportFactory
 {
@@ -20,26 +15,26 @@ public class ExcelExportFactory : IExcelExportFactory
         _logger = _loggerFactory.CreateLogger<ExcelExportFactory>();
     }
 
-    public ExcelExport Create(ExcelExportContext context)
+    public ExcelExportAdapter CreateAdapter(ExcelExportContext context)
     {
-        ExcelExport excelExport;
+        ExcelExportAdapter excelExport;
 
         switch (context.ProviderName)
         {
             case "LEGACY":
-                excelExport = new ExcelExport(_loggerFactory.CreateLogger<ExcelExport>());
+                excelExport = new ExcelExportAdapter(_loggerFactory.CreateLogger<ExcelExportAdapter>());
                 break;
 
             case "SAX":
-                excelExport = new ExcelExportSAX(_loggerFactory.CreateLogger<ExcelExportSAX>());
+                excelExport = new ExcelExportSAXAdapter(_loggerFactory.CreateLogger<ExcelExportSAXAdapter>());
                 break;
 
             case "ODC":
-                excelExport = new ExcelExportODC(_loggerFactory.CreateLogger<ExcelExportODC>());
+                excelExport = new ExcelExportODCAdapter(_loggerFactory.CreateLogger<ExcelExportODCAdapter>());
                 break;
 
             default:
-                excelExport = new ExcelExportSAX(_loggerFactory.CreateLogger<ExcelExportSAX>());
+                excelExport = new ExcelExportSAXAdapter(_loggerFactory.CreateLogger<ExcelExportSAXAdapter>());
                 break;
         }
 

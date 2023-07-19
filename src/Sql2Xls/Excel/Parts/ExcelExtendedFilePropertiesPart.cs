@@ -1,12 +1,11 @@
 ﻿using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using Sql2Xls.Excel.Extensions;
 
-namespace Sql2Xls.Excel;
+namespace Sql2Xls.Excel.Parts;
 
 public class ExcelExtendedFilePropertiesPart : ExcelPart
 {
-    public const string ExtendedPropertiesRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties";
-
     public ExcelExtendedFilePropertiesPart(SpreadsheetDocument document, string relationshipId, ExcelExportContext context)
         : base(document, relationshipId, context)
     {
@@ -31,7 +30,7 @@ public class ExcelExtendedFilePropertiesPart : ExcelPart
 
         if (Context.CanUseRelativePaths)
         {
-            ExcelHelper.UpdateDocumentRelationshipsPath(Document, extendedFilePropertiesPart, ExtendedPropertiesRelationshipType);
+            Document.UpdateDocumentRelationshipsPath(extendedFilePropertiesPart, ExcelConstants.ExtendedPropertiesRelationshipType);
         }
     }
 
@@ -52,7 +51,7 @@ public class ExcelExtendedFilePropertiesPart : ExcelPart
 
         if (Context.CanUseRelativePaths)
         {
-            ExcelHelper.UpdateDocumentRelationshipsPath(Document, Document.ExtendedFilePropertiesPart, ExtendedPropertiesRelationshipType);
+            Document.UpdateDocumentRelationshipsPath(Document.ExtendedFilePropertiesPart, ExcelConstants.ExtendedPropertiesRelationshipType);
         }
     }
 }

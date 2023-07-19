@@ -1,7 +1,8 @@
 ﻿using DocumentFormat.OpenXml.Packaging;
+using Sql2Xls.Excel.Extensions;
 using System.Xml;
 
-namespace Sql2Xls.Excel;
+namespace Sql2Xls.Excel.Parts;
 
 public class ExcelCoreFilePropertiesPart : ExcelPart
 {
@@ -38,7 +39,7 @@ public class ExcelCoreFilePropertiesPart : ExcelPart
 
         if (Context.CanUseRelativePaths)
         {
-            ExcelHelper.UpdateDocumentRelationshipsPath(Document, part, CoreFilePropertiesRelationshipType);
+            Document.UpdateDocumentRelationshipsPath(part, CoreFilePropertiesRelationshipType);
         }
     }
 }

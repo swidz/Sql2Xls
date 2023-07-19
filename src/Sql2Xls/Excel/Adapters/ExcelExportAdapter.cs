@@ -2,17 +2,19 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Extensions.Logging;
+using Sql2Xls.Excel.Extensions;
+using Sql2Xls.Excel.Parts;
 using Sql2Xls.Extensions;
+using Sql2Xls.Interfaces;
 using System.Data;
 using System.IO.Compression;
 using System.Text;
 using System.Xml.Linq;
 
-namespace Sql2Xls.Excel;
+namespace Sql2Xls.Excel.Adapters;
 
-public class ExcelExport : IExcelExport, IDisposable
+public class ExcelExportAdapter : IExcelExportAdapter, IDisposable
 {
-    // Flag: Has Dispose already been called?
     bool disposed = false;
 
     protected byte __STATE = 0;
@@ -29,7 +31,6 @@ public class ExcelExport : IExcelExport, IDisposable
             if (_context is not null)
                 return _context;
             return ExcelExportContext.Default;
-
         }
 
         set
@@ -53,10 +54,7 @@ public class ExcelExport : IExcelExport, IDisposable
 
     protected int currentRow = 0;
 
-    protected readonly string dateTimeFormatString = "yyyy-MM-dd HH:mm:ss";
-
-    protected readonly Dictionary<string, SharedStringCacheItem> sharedStringsCache
-        = new Dictionary<string, SharedStringCacheItem>(10000);
+    protected readonly Dictionary<string, SharedStringCacheItem> sharedStringsCache = new(10000);
 
     protected string workbookPartRelationshipId = "rId1";
     protected string coreFilePropertiesPartRelationshipId = "rId2";
@@ -66,35 +64,24 @@ public class ExcelExport : IExcelExport, IDisposable
     protected string workbookStylesPartRelationshipId = "rId3";
     protected string sharedStringPartRelationshipId = "rId4";
 
-    protected const string defaultSpreadsheetNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
-    protected const string relationshipsNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
-    protected const string worksheetRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet";
-    protected const string stylesRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles";
-    protected const string themeRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme";
-    protected const string sharedStringsRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings";
-    protected const string officeDocumentRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument";
-    protected const string extendedPropertiesRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties";
-    protected const string coreFilePropertiesRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/core-properties";
+    private readonly ILogger<ExcelExportAdapter> _logger;
 
-    private const string contentTypesFilename = "[Content_Types].xml";
-
-    private readonly ILogger<ExcelExport> _logger;
-
-    public ExcelExport(ILogger<ExcelExport> logger)
+    public ExcelExportAdapter(ILogger<ExcelExportAdapter> logger)
     {
-
         _logger = logger;
     }
 
 
-    public void InitWorksheetColumns(DataTable dataTable)
+    public WorksheetColumnCollection InitWorksheetColumns(DataTable dataTable)
     {
         WorksheetColumns = WorksheetColumnCollection.Create(dataTable, Context);
+        return WorksheetColumns;
     }
 
-    public void InitWorksheetColumns(IDataRecord record)
+    public WorksheetColumnCollection InitWorksheetColumns(IDataRecord record)
     {
         WorksheetColumns = WorksheetColumnCollection.Create(record, Context);
+        return WorksheetColumns;
     }
 
     public void LoadFromDataTable(DataTable dataTable)
@@ -221,7 +208,7 @@ public class ExcelExport : IExcelExport, IDisposable
 
     public void LoadFromList<T>(List<T> list)
     {
-        LoadFromDataTable(list.ToDataTable<T>());
+        LoadFromDataTable(list.ToDataTable());
     }
 
     protected List<Sheet> CreateSpreadSheetInfo()
@@ -255,7 +242,7 @@ public class ExcelExport : IExcelExport, IDisposable
             {
                 if (Context.DateTimeAsString)
                 {
-                    resultValue = dateValue.ToString(dateTimeFormatString);
+                    resultValue = dateValue.ToString(ApplicationConstants.DateTimeFormatString);
                 }
                 else
                 {
@@ -294,7 +281,7 @@ public class ExcelExport : IExcelExport, IDisposable
         document.ChangeIdOfPart(workbookPart, workbookPartRelationshipId);
         if (Context.CanUseRelativePaths)
         {
-            workbookPartRelationshipId = ExcelHelper.UpdateDocumentRelationshipsPath(document, workbookPart, officeDocumentRelationshipType);
+            workbookPartRelationshipId = document.UpdateDocumentRelationshipsPath(workbookPart, ExcelConstants.OfficeDocumentRelationshipType);
         }
 
         return workbookPart;
@@ -326,7 +313,7 @@ public class ExcelExport : IExcelExport, IDisposable
             DefaultThemeVersion = UInt32Value.FromUInt32(124226U)
         };
 
-        BookViews bookViews = new BookViews();
+        var bookViews = new BookViews();
         bookViews.Append(new WorkbookView());
 
         workbook.Append(fileVersion1);
@@ -371,7 +358,7 @@ public class ExcelExport : IExcelExport, IDisposable
 
         if (Context.CanUseRelativePaths)
         {
-            worksheetPartRelationshipId = ExcelHelper.UpdateWorkbookRelationshipsPath(document, worksheetPart, worksheetRelationshipType);
+            worksheetPartRelationshipId = document.UpdateWorkbookRelationshipsPath(worksheetPart, ExcelConstants.WorksheetRelationshipType);
         }
 
         /*
@@ -399,7 +386,7 @@ public class ExcelExport : IExcelExport, IDisposable
         Column xlColumn = new Column
         {
             Min = UInt32Value.FromUInt32(1U),
-            Max = UInt32Value.FromUInt32((uint)WorksheetColumns.ColumnCount),
+            Max = UInt32Value.FromUInt32((uint)WorksheetColumns.Count),
             Width = DoubleValue.FromDouble(20D),
             CustomWidth = BooleanValue.FromBoolean(true)
         };
@@ -460,9 +447,9 @@ public class ExcelExport : IExcelExport, IDisposable
 
     protected void FixContentTypes(ZipArchive archive)
     {
-        _logger.LogTrace("Updating {0}", contentTypesFilename);
+        _logger.LogTrace("Updating {0}", ExcelConstants.ContentTypesFilename);
 
-        var entry = archive.GetEntry(contentTypesFilename);
+        var entry = archive.GetEntry(ExcelConstants.ContentTypesFilename);
 
         //Replace the content
         StringBuilder sb = new StringBuilder();
@@ -484,7 +471,7 @@ public class ExcelExport : IExcelExport, IDisposable
         sb.Append("</Types>");
 
         entry.Delete();
-        entry = archive.CreateEntry(contentTypesFilename);
+        entry = archive.CreateEntry(ExcelConstants.ContentTypesFilename);
         using (StreamWriter writer = new StreamWriter(entry.Open()))
         {
             writer.Write(sb);
@@ -560,9 +547,9 @@ public class ExcelExport : IExcelExport, IDisposable
 
     protected virtual Row CreateHeaderRow(int rowIndex = 0, bool preCacheSharedString = true)
     {
-        Cell[] cellChildren = new Cell[WorksheetColumns.ColumnCount];
-        Row headerRow = new Row { RowIndex = (uint)rowIndex + 1 };
-        for (int colIndex = 0; colIndex < WorksheetColumns.ColumnCount; colIndex++)
+        Cell[] cellChildren = new Cell[WorksheetColumns.Count];
+        var headerRow = new Row { RowIndex = (uint)rowIndex + 1 };
+        for (int colIndex = 0; colIndex < WorksheetColumns.Count; colIndex++)
         {
             var columnInfo = WorksheetColumns[colIndex];
             string valueStr = columnInfo.ColumnName;
@@ -571,7 +558,7 @@ public class ExcelExport : IExcelExport, IDisposable
             {
                 if (!sharedStringsCache.TryGetValue(valueStr, out SharedStringCacheItem item))
                 {
-                    item = SharedStringCacheItem.Create(sharedStringsCache.Count, valueStr);
+                    item = new SharedStringCacheItem { Position = sharedStringsCache.Count, Value = valueStr };
                     sharedStringsCache.Add(valueStr, item);
                 }
                 valueStr = item.Position.ToString();
@@ -589,9 +576,9 @@ public class ExcelExport : IExcelExport, IDisposable
 
     protected virtual Row CreateRowFromRecord(IDataRecord record, int rowIndex, bool preCacheSharedString = true)
     {
-        Cell[] cellChildren = new Cell[WorksheetColumns.ColumnCount];
-        Row newRow = new Row { RowIndex = (uint)rowIndex + 1 };
-        for (int colIndex = 0; colIndex < WorksheetColumns.ColumnCount; colIndex++)
+        Cell[] cellChildren = new Cell[WorksheetColumns.Count];
+        var newRow = new Row { RowIndex = (uint)rowIndex + 1 };
+        for (int colIndex = 0; colIndex < WorksheetColumns.Count; colIndex++)
         {
             var columnInfo = WorksheetColumns[colIndex];
             string valueStr = GetValue(record[colIndex], columnInfo);
@@ -600,7 +587,7 @@ public class ExcelExport : IExcelExport, IDisposable
             {
                 if (!sharedStringsCache.TryGetValue(valueStr, out SharedStringCacheItem item))
                 {
-                    item = SharedStringCacheItem.Create(sharedStringsCache.Count, valueStr);
+                    item = new SharedStringCacheItem { Position = sharedStringsCache.Count, Value = valueStr };
                     sharedStringsCache.Add(valueStr, item);
                 }
                 valueStr = item.Position.ToString();
@@ -619,13 +606,13 @@ public class ExcelExport : IExcelExport, IDisposable
 
     private SheetData CreateSheetData(SpreadsheetDocument document, Worksheet worksheet, DataTable dataTable)
     {
-        SheetData sheetData = new SheetData();
+        var sheetData = new SheetData();
 
         int rowIndex = 0;
         int numOfRows = dataTable.Rows.Count;
 
-        Row headerRow = new Row { RowIndex = (uint)rowIndex + 1 };
-        for (int colIndex = 0; colIndex < WorksheetColumns.ColumnCount; colIndex++)
+        var headerRow = new Row { RowIndex = (uint)rowIndex + 1 };
+        for (int colIndex = 0; colIndex < WorksheetColumns.Count; colIndex++)
         {
             var columnInfo = WorksheetColumns[colIndex];
             Cell headerCell = CreateColumnHeader(colIndex, rowIndex, columnInfo);
@@ -633,15 +620,15 @@ public class ExcelExport : IExcelExport, IDisposable
             headerRow.AppendChild(headerCell);
         }
         sheetData.AppendChild(headerRow);
-        _logger.LogTrace("{0} Columns in total", WorksheetColumns.ColumnCount);
+        _logger.LogTrace("{0} Columns in total", WorksheetColumns.Count);
 
         rowIndex = 1;
-        List<Row> rowChildren = new List<Row>(numOfRows);
-        Cell[] cellChildren = new Cell[WorksheetColumns.ColumnCount];
+        var rowChildren = new List<Row>(numOfRows);
+        var cellChildren = new Cell[WorksheetColumns.Count];
         foreach (DataRow dsrow in dataTable.Rows)
         {
-            Row newRow = new Row { RowIndex = (uint)rowIndex + 1 };
-            for (int colIndex = 0; colIndex < WorksheetColumns.ColumnCount; colIndex++)
+            var newRow = new Row { RowIndex = (uint)rowIndex + 1 };
+            for (int colIndex = 0; colIndex < WorksheetColumns.Count; colIndex++)
             {
                 Cell dataCell = CreateCellFromDataType(colIndex, rowIndex, dsrow[colIndex]);
                 cellChildren[colIndex] = dataCell;
@@ -651,7 +638,7 @@ public class ExcelExport : IExcelExport, IDisposable
             rowIndex++;
         }
         sheetData.Append(rowChildren);
-        _logger.LogTrace("{0} records with {1} columns has been added.", numOfRows, WorksheetColumns.ColumnCount);
+        _logger.LogTrace("{0} records with {1} columns has been added.", numOfRows, WorksheetColumns.Count);
 
         worksheet.AppendChild(sheetData);
 
@@ -663,7 +650,7 @@ public class ExcelExport : IExcelExport, IDisposable
         SharedStringTablePart sharedStringPart = document.WorkbookPart.AddNewPart<SharedStringTablePart>(sharedStringPartRelationshipId);
         if (Context.CanUseRelativePaths)
         {
-            sharedStringPartRelationshipId = ExcelHelper.UpdateWorkbookRelationshipsPath(document, sharedStringPart, sharedStringsRelationshipType);
+            sharedStringPartRelationshipId = document.UpdateWorkbookRelationshipsPath(sharedStringPart, ExcelConstants.SharedStringsRelationshipType);
         }
         return sharedStringPart;
     }
@@ -704,21 +691,21 @@ public class ExcelExport : IExcelExport, IDisposable
         int count = 0;
         int uniqueCount = 0;
 
-        for (int colIndex = 0; colIndex < WorksheetColumns.ColumnCount; colIndex++)
+        for (int colIndex = 0; colIndex < WorksheetColumns.Count; colIndex++)
         {
             var columnInfo = WorksheetColumns[colIndex];
             if (!sharedStringsCache.ContainsKey(columnInfo.ColumnName))
             {
-                sharedStringsCache.Add(columnInfo.ColumnName, SharedStringCacheItem.Create(uniqueCount, columnInfo.ColumnName));
+                sharedStringsCache.Add(columnInfo.ColumnName, new SharedStringCacheItem { Position = uniqueCount, Value = columnInfo.ColumnName });
                 uniqueCount++;
 
                 var sharedStringItem = new SharedStringItem(new Text(columnInfo.ColumnName));
                 sharedStringTable.AppendChild(sharedStringItem);
             }
         }
-        count += WorksheetColumns.ColumnCount;
+        count += WorksheetColumns.Count;
 
-        for (int colIndex = 0; colIndex < WorksheetColumns.ColumnCount; colIndex++)
+        for (int colIndex = 0; colIndex < WorksheetColumns.Count; colIndex++)
         {
             var columnInfo = WorksheetColumns[colIndex];
             if (!columnInfo.IsSharedString)
@@ -734,7 +721,7 @@ public class ExcelExport : IExcelExport, IDisposable
                 string resultValue = GetValue(val, columnInfo);
                 if (!sharedStringsCache.ContainsKey(resultValue))
                 {
-                    sharedStringsCache.Add(resultValue, SharedStringCacheItem.Create(uniqueCount, resultValue));
+                    sharedStringsCache.Add(resultValue, new SharedStringCacheItem { Position = uniqueCount, Value = resultValue });
                     uniqueCount++;
 
                     var sharedStringItem = new SharedStringItem(new Text(resultValue));
@@ -907,7 +894,7 @@ public class ExcelExport : IExcelExport, IDisposable
 
 
     //https://github.com/OfficeDev/Open-XML-SDK/issues/90
-    protected string GetXMLWithDefaultNamespace(string outerXml, string defaultNamespace = defaultSpreadsheetNamespace, string prefix = "x")
+    protected string GetXMLWithDefaultNamespace(string outerXml, string defaultNamespace = ExcelConstants.DefaultSpreadsheetNamespace, string prefix = "x")
     {
         var xml = XDocument.Parse(outerXml);
         if (xml.Root != null)
@@ -1014,7 +1001,6 @@ public class ExcelExport : IExcelExport, IDisposable
         return c;
     }
 
-    // Public implementation of Dispose pattern callable by consumers.
     public void Dispose()
     {
         Dispose(true);
@@ -1043,7 +1029,7 @@ public class ExcelExport : IExcelExport, IDisposable
         disposed = true;
     }
 
-    ~ExcelExport()
+    ~ExcelExportAdapter()
     {
         Dispose(false);
     }

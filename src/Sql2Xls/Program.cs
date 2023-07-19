@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
+using Sql2Xls.Interfaces;
 using Sql2Xls.Sql;
 using HelpText = CommandLine.Text.HelpText;
 

@@ -2,16 +2,17 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Extensions.Logging;
+using Sql2Xls.Excel.Parts;
 using System.Data;
 
-namespace Sql2Xls.Excel;
+namespace Sql2Xls.Excel.Adapters;
 
-public class ExcelExportODC : ExcelExport
+public class ExcelExportODCAdapter : ExcelExportAdapter
 {
-    private readonly ILogger<ExcelExportODC> _logger;
+    private readonly ILogger<ExcelExportODCAdapter> _logger;
     private ConnectionsPart xlConnectionsPart;
 
-    public ExcelExportODC(ILogger<ExcelExportODC> logger) : base(logger)
+    public ExcelExportODCAdapter(ILogger<ExcelExportODCAdapter> logger) : base(logger)
     {
         _logger = logger;
     }
@@ -29,7 +30,7 @@ public class ExcelExportODC : ExcelExport
         xlStylesPart = new ExcelStylesPart(xlDocument, workbookStylesPartRelationshipId, Context);
         xlStylesPart.CreateWorkbookStylesPart(xlWorkbookPart);
 
-        CreateThemePart(xlDocument, xlWorkbookPart);
+        xlThemePart = CreateThemePart(xlDocument, xlWorkbookPart);
 
         //xlSharedStringTablePart = CreateSharedStringTablePart(xlDocument);
 

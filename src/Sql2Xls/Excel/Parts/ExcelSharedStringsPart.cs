@@ -1,6 +1,7 @@
 ﻿using DocumentFormat.OpenXml.Packaging;
+using Sql2Xls.Excel.Extensions;
 
-namespace Sql2Xls.Excel;
+namespace Sql2Xls.Excel.Parts;
 
 
 public class ExcelSharedStringsPart : ExcelPart
@@ -24,7 +25,7 @@ public class ExcelSharedStringsPart : ExcelPart
         SharedStringTablePart sharedStringPart = document.WorkbookPart.AddNewPart<SharedStringTablePart>(RelationshipId);
         if (Context.CanUseRelativePaths)
         {
-            RelationshipId = ExcelHelper.UpdateWorkbookRelationshipsPath(document, sharedStringPart, RelationshipId);
+            RelationshipId = document.UpdateWorkbookRelationshipsPath(sharedStringPart, RelationshipId);
         }
         return sharedStringPart;
     }
@@ -33,7 +34,7 @@ public class ExcelSharedStringsPart : ExcelPart
     {
         if (!sharedStringsCache.TryGetValue(valueStr, out SharedStringCacheItem item))
         {
-            item = SharedStringCacheItem.Create(sharedStringsCache.Count, valueStr);
+            item = new SharedStringCacheItem { Position = sharedStringsCache.Count, Value = valueStr };
             sharedStringsCache.Add(valueStr, item);
         }
         valueStr = item.Position.ToString();

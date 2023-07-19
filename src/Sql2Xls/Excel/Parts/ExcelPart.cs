@@ -1,6 +1,6 @@
 ﻿using DocumentFormat.OpenXml.Packaging;
 
-namespace Sql2Xls.Excel;
+namespace Sql2Xls.Excel.Parts;
 
 public abstract class ExcelPart
 {

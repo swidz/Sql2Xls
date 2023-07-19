@@ -2,9 +2,6 @@
 
 public class ExcelExportContext
 {
-    private const string DEFAULT_SHEET_NAME = "sheet1";
-    private const int MAX_ROWS_PER_WORKSHEET = 1048576;
-
     public static readonly ExcelExportContext _defaultInstance = new ExcelExportContext();
     public static ExcelExportContext Default { get { return _defaultInstance; } }
 
@@ -31,7 +28,7 @@ public class ExcelExportContext
         ProviderName = "SAX";
         CanIncludeHeader = true;
         DateTimeAsString = true;
-        SheetName = DEFAULT_SHEET_NAME;
+        SheetName = ExcelConstants.DEFAULT_SHEET_NAME;
         CanCreateExtendedFileProperties = false;
         CanCreateCoreFileProperties = false;
         CanUseRelativePaths = false;
@@ -40,9 +37,8 @@ public class ExcelExportContext
         CanFixContentTypes = false;
         CanFixXmlDeclarations = false;
         DateTimeAsString = true;
-        MaxRowsPerSheet = MAX_ROWS_PER_WORKSHEET;
-
-        ODCTableName = DEFAULT_SHEET_NAME;
+        MaxRowsPerSheet = ExcelConstants.MAX_ROWS_PER_WORKSHEET;
+        ODCTableName = ExcelConstants.DEFAULT_SHEET_NAME;
         ODCConnectionString = string.Empty;
         ODCSqlStatement = string.Empty;
     }

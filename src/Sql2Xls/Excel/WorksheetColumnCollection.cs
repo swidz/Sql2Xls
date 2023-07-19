@@ -4,7 +4,7 @@ namespace Sql2Xls.Excel;
 
 public class WorksheetColumnCollection
 {
-    public int ColumnCount { get; private set; }
+    public int Count { get; private set; }
     public bool HasSharedStrings { get; private set; }
     public bool DateTimeAsString { get; private set; }
     public WorksheetColumnInfo this[int idx] { get { return innerCollection[idx]; } }
@@ -28,9 +28,9 @@ public class WorksheetColumnCollection
 
     private WorksheetColumnCollection(DataTable dataTable, ExcelExportContext context)
     {
-        ColumnCount = dataTable.Columns.Count;
-        innerCollection = new List<WorksheetColumnInfo>(ColumnCount);
-        for (int i = 0; i < ColumnCount; i++)
+        Count = dataTable.Columns.Count;
+        innerCollection = new List<WorksheetColumnInfo>(Count);
+        for (int i = 0; i < Count; i++)
         {
             innerCollection.Add(new WorksheetColumnInfo(dataTable.Columns[i], i, context));
         }
@@ -38,9 +38,9 @@ public class WorksheetColumnCollection
 
     private WorksheetColumnCollection(IDataRecord dataRecord, ExcelExportContext context)
     {
-        ColumnCount = dataRecord.FieldCount;
-        innerCollection = new List<WorksheetColumnInfo>(ColumnCount);
-        for (int i = 0; i < ColumnCount; i++)
+        Count = dataRecord.FieldCount;
+        innerCollection = new List<WorksheetColumnInfo>(Count);
+        for (int i = 0; i < Count; i++)
         {
             var columnInfo = new WorksheetColumnInfo(dataRecord, i, context);
             innerCollection.Add(columnInfo);
@@ -53,8 +53,8 @@ public class WorksheetColumnCollection
 
     private WorksheetColumnCollection(ICollection<WorksheetColumnInfo> columns)
     {
-        ColumnCount = columns.Count;
-        innerCollection = new List<WorksheetColumnInfo>(ColumnCount);
+        Count = columns.Count;
+        innerCollection = new List<WorksheetColumnInfo>(Count);
         foreach (var column in columns)
         {
             innerCollection.Add(column);

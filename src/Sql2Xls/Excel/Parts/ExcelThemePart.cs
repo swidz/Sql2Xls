@@ -1,7 +1,8 @@
 ﻿using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Packaging;
+using Sql2Xls.Excel.Extensions;
 
-namespace Sql2Xls.Excel;
+namespace Sql2Xls.Excel.Parts;
 
 public class ExcelThemePart : ExcelPart
 {
@@ -20,7 +21,7 @@ public class ExcelThemePart : ExcelPart
 
         if (Context.CanUseRelativePaths)
         {
-            RelationshipId = ExcelHelper.UpdateWorkbookRelationshipsPath(Document, themePart, themeRelationshipType);
+            RelationshipId = Document.UpdateWorkbookRelationshipsPath(themePart, themeRelationshipType);
         }
 
         return themePart;
