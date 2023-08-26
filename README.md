@@ -12,4 +12,4 @@ Export SQL query results to Microsoft Excel
 9. SQL queries can be run against the following databases: Microsoft SQL Server, PostgreSQL, ODBC
 10. Logging (various levels, console and log file with a path specified by user) - the library is using LibLog and SeriLog with Console and File sinks
 11. Queries can be executed in Parallel (use Maxdop parameter)
-12. Excel generation using: Performance adapter OpenXmlWriter (SAX) or standard OpenXml (DOM/ODC) (slower but more stable)
+12. Excel generation using: Fast streaming adapter using OpenXmlWriter (SAX) or standard OpenXml (DOM/ODC) (slower)
