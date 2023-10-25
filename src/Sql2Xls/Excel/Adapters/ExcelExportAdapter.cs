@@ -611,6 +611,10 @@ public class ExcelExportAdapter : IExcelExportAdapter, IDisposable
         int rowIndex = 0;
         int numOfRows = dataTable.Rows.Count;
 
+        //TODO Switch to RowProxy ?
+        //https://github.com/pre-alpha-final/openxml-memory-usage-hack/blob/master/docs/compare_code.png
+        //https://github.com/dotnet/Open-XML-SDK/issues/807
+
         var headerRow = new Row { RowIndex = (uint)rowIndex + 1 };
         for (int colIndex = 0; colIndex < WorksheetColumns.Count; colIndex++)
         {

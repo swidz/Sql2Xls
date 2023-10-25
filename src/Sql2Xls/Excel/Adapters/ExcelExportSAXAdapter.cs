@@ -8,16 +8,20 @@ using System.Data;
 
 namespace Sql2Xls.Excel.Adapters;
 
-
 public class ExcelExportSAXAdapter : ExcelExportAdapter
 {
     private readonly ILogger<ExcelExportSAXAdapter> _logger;
+    
+    private readonly Cell _cellObject;
+    private readonly InlineString _inlineStringObject;
 
-    private OpenXmlWriter xlWorksheetPartXmlWriter;
+    private OpenXmlWriter _xlWorksheetPartXmlWriter;
 
     public ExcelExportSAXAdapter(ILogger<ExcelExportSAXAdapter> logger) : base(logger)
     {
         _logger = logger;
+        _cellObject = new Cell();
+        _inlineStringObject = new InlineString();
     }
 
     public override SpreadsheetDocument Open()
@@ -36,10 +40,11 @@ public class ExcelExportSAXAdapter : ExcelExportAdapter
 
         xlWorkbook = CreateWorkbook(xlWorkbookPart, sheetInfo);
         xlWorksheetPart = CreateWorksheetPart(xlWorkbookPart);
-        xlWorksheetPartXmlWriter = CreateWorksheetPreSAX(xlDocument, xlWorksheetPart);
 
+        _xlWorksheetPartXmlWriter = OpenXmlWriter.Create(xlWorksheetPart);
+        CreateWorksheetPreSAX(xlDocument, xlWorksheetPart, _xlWorksheetPartXmlWriter);
         xlSheetData = new SheetData();
-        xlWorksheetPartXmlWriter.WriteStartElement(xlSheetData);
+        _xlWorksheetPartXmlWriter.WriteStartElement(xlSheetData);
 
         __STATE = STATE_OPEN;
 
@@ -48,7 +53,7 @@ public class ExcelExportSAXAdapter : ExcelExportAdapter
 
     protected override void AddHeaderRow(int rowIndex)
     {
-        CreateHeaderRow(xlWorksheetPartXmlWriter, rowIndex, true);
+        CreateHeaderRow(_xlWorksheetPartXmlWriter, rowIndex, true);
         __STATE = STATE_IMPORT;
     }
 
@@ -92,7 +97,7 @@ public class ExcelExportSAXAdapter : ExcelExportAdapter
             }
         }
 
-        CreateRowFromRecordSAX(xlWorksheetPartXmlWriter, dataRecord, currentRow++, true);
+        CreateRowFromRecordSAX(_xlWorksheetPartXmlWriter, dataRecord, currentRow++, true);
     }
 
     private void CreateRowFromRecordSAX(OpenXmlWriter openXmlWriter, IDataRecord record, int rowIndex, bool preCacheSharedString = true)
@@ -130,17 +135,17 @@ public class ExcelExportSAXAdapter : ExcelExportAdapter
         {
             if (xlDocument != null)
             {
-                if (xlWorksheetPartXmlWriter != null)
+                if (_xlWorksheetPartXmlWriter != null)
                 {
-                    xlWorksheetPartXmlWriter.WriteEndElement(); //SheedData
+                    _xlWorksheetPartXmlWriter.WriteEndElement(); //SheedData
                 }
 
                 CreateSharedStringTable(xlDocument, xlSharedStringTablePart, sharedStringsCache, xlSharedStringsCount);
 
-                if (xlWorksheetPartXmlWriter != null)
+                if (_xlWorksheetPartXmlWriter != null)
                 {
-                    CreateWorksheetPostSAX(xlWorksheetPartXmlWriter);
-                    xlWorksheetPartXmlWriter = null;
+                    CreateWorksheetPostSAX(_xlWorksheetPartXmlWriter);
+                    _xlWorksheetPartXmlWriter = null;
                 }
 
                 xlDocument.Dispose();
@@ -167,6 +172,7 @@ public class ExcelExportSAXAdapter : ExcelExportAdapter
         {
             KeyValuePair.Create("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships")
         };
+
         Workbook workbook = new Workbook();
         openXmlWriter.WriteStartElement(workbook, openXmlAttributes, namespaceDeclarations);
 
@@ -204,9 +210,8 @@ public class ExcelExportSAXAdapter : ExcelExportAdapter
         return workbook;
     }
 
-    private OpenXmlWriter CreateWorksheetPreSAX(SpreadsheetDocument document, WorksheetPart worksheetPart)
-    {
-        OpenXmlWriter openXmlWriter = OpenXmlWriter.Create(worksheetPart);
+    private void CreateWorksheetPreSAX(SpreadsheetDocument document, WorksheetPart worksheetPart, OpenXmlWriter openXmlWriter)
+    {        
         openXmlWriter.WriteStartDocument(true);
 
         var openXmlAttributes = new List<OpenXmlAttribute>
@@ -267,9 +272,7 @@ public class ExcelExportSAXAdapter : ExcelExportAdapter
                 CustomWidth = BooleanValue.FromBoolean(true)
             });
 
-        openXmlWriter.WriteEndElement();
-
-        return openXmlWriter;
+        openXmlWriter.WriteEndElement();        
     }
 
     private void CreateWorksheetPostSAX(OpenXmlWriter openXmlWriter)
@@ -288,15 +291,18 @@ public class ExcelExportSAXAdapter : ExcelExportAdapter
 
         HeaderFooter headerFooter = new HeaderFooter();
         openXmlWriter.WriteElement(headerFooter);
-        openXmlWriter.WriteEndElement();
-        openXmlWriter.Close();
+        openXmlWriter.WriteEndElement();        
     }
 
     protected override void CreateWorksheet(SpreadsheetDocument document, WorksheetPart worksheetPart, DataTable dataTable)
     {
-        xlWorksheetPartXmlWriter = CreateWorksheetPreSAX(document, worksheetPart);
-        CreateSheetDataSAX(xlWorksheetPartXmlWriter, dataTable);
-        CreateWorksheetPostSAX(xlWorksheetPartXmlWriter);
+        using var xmlWriter = OpenXmlWriter.Create(xlWorksheetPart);
+        {
+            CreateWorksheetPreSAX(document, worksheetPart, xmlWriter);
+            CreateSheetDataSAX(xmlWriter, dataTable);
+            CreateWorksheetPostSAX(xmlWriter);
+            xmlWriter.Close();
+        }        
     }
 
     private void CreateSheetDataSAX(OpenXmlWriter openXmlWriter, DataTable dataTable)
@@ -323,7 +329,7 @@ public class ExcelExportSAXAdapter : ExcelExportAdapter
             {
                 CreateCellFromDataTypeSAX(openXmlWriter, colIndex, rowIndex, dsrow[colIndex]);
             }
-            openXmlWriter.WriteEndElement();
+            openXmlWriter.WriteEndElement();            
             rowIndex++;
         }
 
@@ -416,7 +422,7 @@ public class ExcelExportSAXAdapter : ExcelExportAdapter
             new OpenXmlAttribute(string.Empty, "s", string.Empty, styleIndex.ToString())
         };
 
-        openXmlWriter.WriteStartElement(new Cell(), openXmlAttributes);
+        openXmlWriter.WriteStartElement(_cellObject, openXmlAttributes);
         openXmlWriter.WriteElement(new CellValue(isValueSharedString ? value : GetSharedStringItem(value)));
         openXmlWriter.WriteEndElement();
     }
@@ -430,8 +436,8 @@ public class ExcelExportSAXAdapter : ExcelExportAdapter
             new OpenXmlAttribute(string.Empty, "s", string.Empty, styleIndex.ToString())
         };
 
-        openXmlWriter.WriteStartElement(new Cell(), openXmlAttributes);
-        openXmlWriter.WriteStartElement(new InlineString());
+        openXmlWriter.WriteStartElement(_cellObject, openXmlAttributes);
+        openXmlWriter.WriteStartElement(_inlineStringObject);
         openXmlWriter.WriteElement(new Text { Text = value });
         openXmlWriter.WriteEndElement();
         openXmlWriter.WriteEndElement();
@@ -460,7 +466,7 @@ public class ExcelExportSAXAdapter : ExcelExportAdapter
             new OpenXmlAttribute(string.Empty, "s", string.Empty, styleIndex.ToString())
         };
 
-        openXmlWriter.WriteStartElement(new Cell(), openXmlAttributes);
+        openXmlWriter.WriteStartElement(_cellObject, openXmlAttributes);
         openXmlWriter.WriteElement(new CellValue(value));
         openXmlWriter.WriteEndElement();
     }
@@ -474,7 +480,7 @@ public class ExcelExportSAXAdapter : ExcelExportAdapter
             new OpenXmlAttribute(string.Empty, "s", string.Empty, styleIndex.ToString())
         };
 
-        openXmlWriter.WriteStartElement(new Cell(), openXmlAttributes);
+        openXmlWriter.WriteStartElement(_cellObject, openXmlAttributes);
         openXmlWriter.WriteElement(new CellValue(value));
         openXmlWriter.WriteEndElement();
     }
