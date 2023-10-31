@@ -329,7 +329,7 @@ public class ExcelExportSAXAdapter : ExcelExportAdapter
             {
                 CreateCellFromDataTypeSAX(openXmlWriter, colIndex, rowIndex, dsrow[colIndex]);
             }
-            openXmlWriter.WriteEndElement();            
+            openXmlWriter.WriteEndElement();
             rowIndex++;
         }
 
