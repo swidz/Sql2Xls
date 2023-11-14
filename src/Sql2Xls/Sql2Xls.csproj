@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
 	  <OutputType>Exe</OutputType>
@@ -9,23 +9,23 @@
 	  <RuntimeIdentifier>win-x64</RuntimeIdentifier> <!-- win-x64;win-x86;linux-x64;osx-x64-->
 	  <Copyright>2023 (c) Infovision Sebastian Widz</Copyright>
 	  <Company>infovision Sebastian Widz</Company>
-	  <Version>1.0.0.0</Version>
+	  <Version>1.0.2.0</Version>
 	  <AssemblyTitle>Sql2Xls</AssemblyTitle>
   </PropertyGroup>
 
   <ItemGroup>
 	<PackageReference Include="CommandLineParser" Version="2.9.1" />
 	<PackageReference Include="DocumentFormat.OpenXml" Version="3.0.0-beta0002" />
-	<PackageReference Include="Microsoft.Extensions.Configuration" Version="7.0.0" />
-	<PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="7.0.0" />
-	<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
-	<PackageReference Include="Microsoft.Extensions.Logging" Version="7.0.0" />
+	<PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
+	<PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="8.0.0" />
+	<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+	<PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
 	<PackageReference Include="Npgsql" Version="7.0.6" />
 	<PackageReference Include="Serilog.Enrichers.Thread" Version="3.1.0" />
 	<PackageReference Include="Serilog.Extensions.Logging" Version="7.0.0" />
-	<PackageReference Include="Serilog.Sinks.Console" Version="4.1.0" />
+	<PackageReference Include="Serilog.Sinks.Console" Version="5.0.0" />
 	<PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
-	<PackageReference Include="System.Data.Odbc" Version="7.0.0" />
+	<PackageReference Include="System.Data.Odbc" Version="8.0.0" />
 	<PackageReference Include="System.Data.SqlClient" Version="4.8.5" />
   </ItemGroup>
 

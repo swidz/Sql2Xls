@@ -896,7 +896,6 @@ public class ExcelExportAdapter : IExcelExportAdapter, IDisposable
         return CreateCell(columnIndex, rowIndex, strValue, columnInfo);
     }
 
-
     //https://github.com/OfficeDev/Open-XML-SDK/issues/90
     protected string GetXMLWithDefaultNamespace(string outerXml, string defaultNamespace = ExcelConstants.DefaultSpreadsheetNamespace, string prefix = "x")
     {

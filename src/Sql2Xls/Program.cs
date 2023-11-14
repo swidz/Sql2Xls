@@ -12,7 +12,6 @@ internal class Program
 {
     static void Main(string[] args)
     {
-
         //var parser = Parser.Default;
         var parser = new CommandLine.Parser(with => with.HelpWriter = null);
         var result = parser.ParseArguments<Sql2XlsOptions>(args);
@@ -39,12 +38,10 @@ internal class Program
                         )
                     .CreateLogger();
 
-
                 var serviceCollection = new ServiceCollection();
                 ConfigureServices(serviceCollection, configuration);
 
                 var serviceProvider = serviceCollection.BuildServiceProvider();
-
 
                 var sql2xls = serviceProvider.GetService<ISql2XlsService>();
                 sql2xls.Run(options);
