@@ -662,7 +662,7 @@ public class ExcelExportAdapter : IExcelExportAdapter, IDisposable
     protected virtual SharedStringTable CreateSharedStringTable(
         SpreadsheetDocument document, SharedStringTablePart sharedStringPart, Dictionary<string, SharedStringCacheItem> dict, int count)
     {
-        SharedStringTable sharedStringTable = new SharedStringTable
+        var sharedStringTable = new SharedStringTable
         {
             UniqueCount = UInt32Value.FromUInt32((uint)dict.Count),
             Count = UInt32Value.FromUInt32((uint)count)
@@ -700,7 +700,13 @@ public class ExcelExportAdapter : IExcelExportAdapter, IDisposable
             var columnInfo = WorksheetColumns[colIndex];
             if (!sharedStringsCache.ContainsKey(columnInfo.ColumnName))
             {
-                sharedStringsCache.Add(columnInfo.ColumnName, new SharedStringCacheItem { Position = uniqueCount, Value = columnInfo.ColumnName });
+                sharedStringsCache.Add(columnInfo.ColumnName, 
+                    new SharedStringCacheItem 
+                    { 
+                        Position = uniqueCount, 
+                        Value = columnInfo.ColumnName 
+                    });
+                
                 uniqueCount++;
 
                 var sharedStringItem = new SharedStringItem(new Text(columnInfo.ColumnName));
