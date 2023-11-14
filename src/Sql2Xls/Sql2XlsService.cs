@@ -112,7 +112,7 @@ public class Sql2XlsService : ISql2XlsService
         if (taskResults.Any(x => x.Success == false))
         {
             var logFile = Path.Combine(parms.DestinationFolder, parms.Options.LogFileName);
-            _logger.LogError("Process completed with errors. Please check the log file.", logFile);;
+            _logger.LogError("Process completed with errors. Please check the log file ({LogFileName}).", logFile);;
         }
         else
         {
