@@ -92,16 +92,4 @@ public class Sql2XlsOptions : ISql2XlsOptions
     {
         get { return Path.Combine(Path.GetDirectoryName(Destination), LogFileName); }
     }
-
-    public Sql2XlsOptions()
-    {
-        DatabaseProviderName = "System.Data.SqlClient";
-        ExportEngine = "SAX";
-        LogLevel = 2;
-        Source = "*.sql";
-        LogFileName = "SQL2XLS.log";
-        MaxDegreeOfParallelism = 1;
-        ConnectionTimeOut = 1200;
-        WorksheetName = String.Empty;
-    }
 }

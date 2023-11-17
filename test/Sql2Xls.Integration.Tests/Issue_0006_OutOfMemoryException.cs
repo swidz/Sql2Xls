@@ -2,8 +2,11 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Sql2Xls.Excel;
 using Sql2Xls.Excel.Adapters;
 using System.Data;
+using System.Diagnostics;
 
 namespace Sql2Xls.Integration.Tests;
+
+//https://github.com/dotnet/Open-XML-SDK/issues/807
 
 [TestClass]
 public class Issue_0006_OutOfMemoryException  
@@ -15,13 +18,11 @@ public class Issue_0006_OutOfMemoryException
         return new string(Enumerable.Repeat(_CHARS, len)
             .Select(s => s[rand.Next(s.Length)]).ToArray());
     }
-    
-    [TestMethod]
-    [DataRow(154, 250_000, 20)]
-    public void GenerateLargeExcel(int numberOfColumns, int numberOfRows, int fieldlen)
+
+    private DataTable GetDataTable(int numberOfColumns, int numberOfRows, int fieldlen)
     {
         Random rand = new Random();
-        
+
         DataTable dt = new DataTable("MyTable");
         for (int j = 0; j < numberOfColumns; j++)
         {
@@ -40,14 +41,51 @@ public class Issue_0006_OutOfMemoryException
             dt.Rows.Add(row);
         }
 
-        var context = new ExcelExportContext()
+        return dt;
+    }
+    
+    [TestMethod]
+    [DataRow(154, 250_000, 20)]
+    public void T001_GenerateLargeExcel(int numberOfColumns, int numberOfRows, int fieldlen)
+    {
+        var dt = GetDataTable(numberOfColumns, numberOfRows, fieldlen);
+        
+        var start = Stopwatch.StartNew();
+        
+        using var excelAdapter = new ExcelExportSAXAdapter(NullLogger<ExcelExportSAXAdapter>.Instance)
         {
-            FileName = "c:\\datamigration\\excel\\test.xlsx",
-            SheetName = "MyTable"
+            Context = new ExcelExportContext()
+            {
+                FileName = "c:\\datamigration\\excel\\test_001.xlsx",
+                SheetName = "MyTable"
+            }
+        };
+        
+        excelAdapter.LoadFromDataTable(dt);
+
+        var elapsed = start.Elapsed;
+        Console.WriteLine($"Elapsed time: {elapsed.TotalSeconds}");
+    }
+
+    [TestMethod]
+    [DataRow(154, 250_000, 20)]
+    public void T002_GenerateLargeExcel(int numberOfColumns, int numberOfRows, int fieldlen)
+    {
+        var dt = GetDataTable(numberOfColumns, numberOfRows, fieldlen);
+
+        var start = Stopwatch.StartNew();
+        using var excelAdapter = new ExcelExportSAXAdapterV2(NullLogger<ExcelExportSAXAdapterV2>.Instance)
+        {
+            Context = new ExcelExportContext()
+            {
+                FileName = "c:\\datamigration\\excel\\test_002.xlsx",
+                SheetName = "MyTable"
+            }
         };
 
-        using var excelAdapter = new ExcelExportSAXAdapter(NullLogger<ExcelExportSAXAdapter>.Instance);
-        excelAdapter.Context = context;
         excelAdapter.LoadFromDataTable(dt);
+
+        var elapsed = start.Elapsed;
+        Console.WriteLine($"Elapsed time: {elapsed.TotalSeconds}");
     }
 }

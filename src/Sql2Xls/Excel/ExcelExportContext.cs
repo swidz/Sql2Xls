@@ -26,8 +26,7 @@ public class ExcelExportContext
     public ExcelExportContext()
     {
         ProviderName = "SAX";
-        CanIncludeHeader = true;
-        DateTimeAsString = true;
+        CanIncludeHeader = true;        
         SheetName = ExcelConstants.DEFAULT_SHEET_NAME;
         CanCreateExtendedFileProperties = false;
         CanCreateCoreFileProperties = false;

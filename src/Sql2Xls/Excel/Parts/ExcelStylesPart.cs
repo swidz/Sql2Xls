@@ -11,9 +11,7 @@ public class ExcelStylesPart : ExcelPart
     public UInt32Value DoubleStyleId { get; private set; }
     public UInt32Value DateStyleId { get; private set; }
     public UInt32Value TextStyleId { get; private set; }
-    public UInt32Value HeaderStyleIndex { get; private set; }
-
-    public const string stylesRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles";
+    public UInt32Value HeaderStyleIndex { get; private set; }    
 
     public ExcelStylesPart(SpreadsheetDocument document, string relationshipId, ExcelExportContext context)
         : base(document, relationshipId, context)
@@ -33,7 +31,7 @@ public class ExcelStylesPart : ExcelPart
 
         if (Context.CanUseRelativePaths)
         {
-            RelationshipId = Document.UpdateWorkbookRelationshipsPath(stylesPart, stylesRelationshipType);
+            RelationshipId = Document.UpdateWorkbookRelationshipsPath(stylesPart, ExcelConstants.StylesRelationshipType);
         }
 
         //http://www.lateral8.com/articles/openxml-format-excel-values.html
@@ -49,7 +47,7 @@ public class ExcelStylesPart : ExcelPart
         return stylesPart;
     }
 
-    protected UInt32Value CreateCellFormat(Stylesheet styleSheet, UInt32Value fontIndex, UInt32Value fillIndex, UInt32Value numberFormatId)
+    private static UInt32Value CreateCellFormat(Stylesheet styleSheet, UInt32Value fontIndex, UInt32Value fillIndex, UInt32Value numberFormatId)
     {
         CellFormat cellFormat = new CellFormat();
 
@@ -76,7 +74,7 @@ public class ExcelStylesPart : ExcelPart
     }
 
 
-    protected Stylesheet GenerateStylesheet()
+    private static Stylesheet GenerateStylesheet()
     {
         NumberingFormats numFmts = new NumberingFormats { Count = UInt32Value.FromUInt32(0U) };
 
@@ -143,16 +141,15 @@ public class ExcelStylesPart : ExcelPart
         DifferentialFormats dxfs = new DifferentialFormats { Count = UInt32Value.FromUInt32(0U) };
 
         Stylesheet styleSheet = new Stylesheet(numFmts, fonts, fills, borders, cellStyleFormats, cellFormats, cellStyles, dxfs);
-        styleSheet.AddNamespaceDeclaration("mc", "http://schemas.openxmlformats.org/markup-compatibility/2006");
-        styleSheet.AddNamespaceDeclaration("x14ac", "http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac");
+        styleSheet.AddNamespaceDeclaration("mc", ExcelConstants.MarkupCompatibility);
+        styleSheet.AddNamespaceDeclaration("x14ac", ExcelConstants.SpreadsheetMlAc);
 
         return styleSheet;
     }
 
-    protected UInt32Value CreateFont(Stylesheet styleSheet, string fontName, double? fontSize,
-        bool isBold, System.Drawing.Color foreColor)
+    private UInt32Value CreateFont(Stylesheet styleSheet, string fontName, double? fontSize, bool isBold, System.Drawing.Color foreColor)
     {
-        Font font = new Font();
+        var font = new Font();
 
         if (isBold == true)
         {

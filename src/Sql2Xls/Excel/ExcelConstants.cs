@@ -5,6 +5,7 @@ public static class ExcelConstants
     public const string DEFAULT_SHEET_NAME = "sheet1";
     public const int MAX_ROWS_PER_WORKSHEET = 1048576;
 
+    
     public const string DefaultSpreadsheetNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
     public const string RelationshipsNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
     public const string WorksheetRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet";
@@ -13,7 +14,7 @@ public static class ExcelConstants
     public const string SharedStringsRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings";
     public const string OfficeDocumentRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument";
     public const string ExtendedPropertiesRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties";
-    public const string CoreFilePropertiesRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/core-properties";
+    public const string CoreFilePropertiesRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/core-properties";    
 
     public const string ContentTypesFilename = "[Content_Types].xml";
 

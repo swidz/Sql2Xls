@@ -145,4 +145,39 @@ public class WorksheetColumnInfo
         while (index >= 0);
         return name;
     }
+
+    public string GetStringValue(object value)
+    {
+        string strValue = value.ToString();
+        string resultValue = strValue;
+
+        if (this.IsFloat)
+        {
+            if (double.TryParse(strValue, out double doubleValue))
+            {
+                resultValue = doubleValue.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+        }
+        else if (this.IsDate)
+        {
+            if (DateTime.TryParse(strValue, out DateTime dateValue))
+            {
+                if (DateTimeAsString)
+                {
+                    resultValue = dateValue.ToString(ApplicationConstants.DateTimeFormatString);
+                }
+                else
+                {
+                    //xls compliant
+                    //double oaValue = dateValue.ToOADate();
+                    //resultValue = oaValue.ToString(CultureInfo.InvariantCulture);
+
+                    //xlsx transitional compliant
+                    resultValue = dateValue.ToString("s");
+                }
+            }
+        }
+
+        return resultValue;
+    }
 }

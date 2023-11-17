@@ -6,8 +6,6 @@ namespace Sql2Xls.Excel.Parts;
 
 public class ExcelCoreFilePropertiesPart : ExcelPart
 {
-    protected const string CoreFilePropertiesRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/core-properties";
-
     public ExcelCoreFilePropertiesPart(SpreadsheetDocument document, string relationshipId, ExcelExportContext context)
         : base(document, relationshipId, context)
     {
@@ -16,9 +14,7 @@ public class ExcelCoreFilePropertiesPart : ExcelPart
     public void CreateDOM()
     {
         CoreFilePropertiesPart part = Document.AddNewPart<CoreFilePropertiesPart>(RelationshipId);
-        using (XmlTextWriter writer = new XmlTextWriter(
-                part.GetStream(FileMode.Create),
-                System.Text.Encoding.UTF8))
+        using (var writer = new XmlTextWriter(part.GetStream(FileMode.Create), System.Text.Encoding.UTF8))
         {
             writer.WriteRaw("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
             writer.WriteRaw(Environment.NewLine);
@@ -35,11 +31,12 @@ public class ExcelCoreFilePropertiesPart : ExcelPart
             writer.WriteRaw("<dcterms:modified xsi:type=\"dcterms:W3CDTF\">" + createdDateTime + "</dcterms:modified>");
             writer.WriteRaw("</cp:coreProperties>");
             writer.Flush();
+            writer.Close();
         }
 
         if (Context.CanUseRelativePaths)
         {
-            Document.UpdateDocumentRelationshipsPath(part, CoreFilePropertiesRelationshipType);
+            Document.UpdateDocumentRelationshipsPath(part, ExcelConstants.CoreFilePropertiesRelationshipType);
         }
     }
 }

@@ -214,17 +214,17 @@ public class ExcelExportAdapter : IExcelExportAdapter, IDisposable
     protected List<Sheet> CreateSpreadSheetInfo()
     {
         return new List<Sheet>
-    {
-        new Sheet()
         {
-            Name = StringValue.FromString(Context.SheetName),
-            SheetId = UInt32Value.FromUInt32(1U),
-            Id = workbookPartRelationshipId
-        }
-    };
+            new Sheet()
+            {
+                Name = StringValue.FromString(Context.SheetName),
+                SheetId = UInt32Value.FromUInt32(1U),
+                Id = workbookPartRelationshipId
+            }
+        };
     }
 
-    protected string GetValue(object value, WorksheetColumnInfo columnInfo)
+    protected string GetStringValue(object value, WorksheetColumnInfo columnInfo)
     {
         string strValue = value.ToString();
         string resultValue = strValue;
@@ -296,7 +296,7 @@ public class ExcelExportAdapter : IExcelExportAdapter, IDisposable
     protected virtual Workbook CreateWorkbook(WorkbookPart workbookPart, List<Sheet> sheetsInfo)
     {
         Workbook workbook = new Workbook();
-        workbook.AddNamespaceDeclaration("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
+        workbook.AddNamespaceDeclaration("r", ExcelConstants.RelationshipsNamespace);
 
         FileVersion fileVersion1 = new FileVersion
         {
@@ -581,7 +581,7 @@ public class ExcelExportAdapter : IExcelExportAdapter, IDisposable
         for (int colIndex = 0; colIndex < WorksheetColumns.Count; colIndex++)
         {
             var columnInfo = WorksheetColumns[colIndex];
-            string valueStr = GetValue(record[colIndex], columnInfo);
+            string valueStr = GetStringValue(record[colIndex], columnInfo);
 
             if (preCacheSharedString && columnInfo.IsSharedString)
             {
@@ -728,7 +728,7 @@ public class ExcelExportAdapter : IExcelExportAdapter, IDisposable
                 if (val == DBNull.Value)
                     continue;
 
-                string resultValue = GetValue(val, columnInfo);
+                string resultValue = GetStringValue(val, columnInfo);
                 if (!sharedStringsCache.ContainsKey(resultValue))
                 {
                     sharedStringsCache.Add(resultValue, new SharedStringCacheItem { Position = uniqueCount, Value = resultValue });
@@ -898,7 +898,7 @@ public class ExcelExportAdapter : IExcelExportAdapter, IDisposable
     protected Cell CreateCellFromDataType(int columnIndex, int rowIndex, object value)
     {
         var columnInfo = WorksheetColumns[columnIndex];
-        string strValue = GetValue(value, columnInfo);
+        string strValue = GetStringValue(value, columnInfo);
         return CreateCell(columnIndex, rowIndex, strValue, columnInfo);
     }
 
@@ -1025,12 +1025,9 @@ public class ExcelExportAdapter : IExcelExportAdapter, IDisposable
         {
             // Free any other managed objects here.
             Close();
-
-            if (xlDocument != null)
-            {
-                xlDocument.Dispose();
-                xlDocument = null;
-            }
+            
+            xlDocument?.Dispose();
+            xlDocument = null;            
         }
 
         // Free any unmanaged objects here.
