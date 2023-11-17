@@ -1,4 +1,5 @@
 ﻿using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Office2019.Excel.RichData2;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Extensions.Logging;
@@ -132,7 +133,7 @@ public class ExcelExportSAXAdapterV2 : IDisposable
                 if (val == DBNull.Value)
                     continue;
 
-                string resultValue = columnInfo.GetStringValue(val);
+                var resultValue = columnInfo.GetStringValue(val);
                 if (!_sharedStringsCache.ContainsKey(resultValue))
                 {
                     _sharedStringsCache.Add(resultValue, new SharedStringCacheItem 
@@ -145,7 +146,7 @@ public class ExcelExportSAXAdapterV2 : IDisposable
         }
 
 
-        SharedStringTable sharedStringTable = new SharedStringTable
+        var sharedStringTable = new SharedStringTable
         {
             UniqueCount = UInt32Value.FromUInt32((uint)_sharedStringsCache.Count),
             Count = UInt32Value.FromUInt32((uint)_sharedStringsCache.Count)
@@ -186,7 +187,7 @@ public class ExcelExportSAXAdapterV2 : IDisposable
                 KeyValuePair.Create("r", ExcelConstants.RelationshipsNamespace)
             };
 
-            Workbook workbook = new Workbook();
+            var workbook = new Workbook();
             openXmlWriter.WriteStartElement(workbook, openXmlAttributes, namespaceDeclarations);
 
             openXmlWriter.WriteElement(new FileVersion
@@ -302,7 +303,7 @@ public class ExcelExportSAXAdapterV2 : IDisposable
             worksheetXmlWriter.WriteStartElement(new Row { RowIndex = (uint)rowIndex + 1 });
             for (int colIndex = 0; colIndex < _worksheetColumns.Count; colIndex++)
             {                
-                CreateSharedStringCellSAX(worksheetXmlWriter, colIndex, rowIndex, _worksheetColumns[colIndex].Caption, _headerStyleIndex, true);
+                CreateSharedStringCellSAX(worksheetXmlWriter, colIndex, rowIndex, _worksheetColumns[colIndex].Caption, _headerStyleIndex);
             }
             worksheetXmlWriter.WriteEndElement();
 
@@ -397,7 +398,7 @@ public class ExcelExportSAXAdapterV2 : IDisposable
         }
     }        
 
-    private void CreateSharedStringCellSAX(OpenXmlWriter openXmlWriter, int columnIndex, int rowIndex, string value, uint styleIndex = 0, bool isValueSharedString = false)
+    private void CreateSharedStringCellSAX(OpenXmlWriter openXmlWriter, int columnIndex, int rowIndex, string value, uint styleIndex = 0)
     {
         var openXmlAttributes = new List<OpenXmlAttribute>(3)
         {
@@ -407,7 +408,7 @@ public class ExcelExportSAXAdapterV2 : IDisposable
         };
 
         openXmlWriter.WriteStartElement(_cellObject, openXmlAttributes);
-        openXmlWriter.WriteElement(new CellValue(isValueSharedString ? value : GetSharedStringItem(value)));
+        openXmlWriter.WriteElement(new CellValue(_sharedStringsCache[value].Position));
         openXmlWriter.WriteEndElement();
     }
 
@@ -425,16 +426,16 @@ public class ExcelExportSAXAdapterV2 : IDisposable
     {
         var columnInfo = _worksheetColumns[columnIndex];
         string strValue = columnInfo.GetStringValue(value);
-        CreateCellSAX(openXmlWriter, columnIndex, rowIndex, strValue, columnInfo, false);
+        CreateCellSAX(openXmlWriter, columnIndex, rowIndex, strValue, columnInfo);
     }
 
-    private void CreateCellSAX(OpenXmlWriter openXmlWriter, int columnIndex, int rowIndex, string value, WorksheetColumnInfo columnInfo, bool isValueSharedString = false)
+    private void CreateCellSAX(OpenXmlWriter openXmlWriter, int columnIndex, int rowIndex, string value, WorksheetColumnInfo columnInfo)
     {
         if (columnInfo.IsFloat)
         {
             if (columnInfo.IsSharedString)
             {
-                CreateSharedStringCellSAX(openXmlWriter, columnIndex, rowIndex, value, _doubleStyleId, isValueSharedString);
+                CreateSharedStringCellSAX(openXmlWriter, columnIndex, rowIndex, value, _doubleStyleId);
             }
             else
             {
@@ -447,7 +448,7 @@ public class ExcelExportSAXAdapterV2 : IDisposable
             {
                 if (columnInfo.IsSharedString)
                 {
-                    CreateSharedStringCellSAX(openXmlWriter, columnIndex, rowIndex, value, _dateStyleId, isValueSharedString);
+                    CreateSharedStringCellSAX(openXmlWriter, columnIndex, rowIndex, value, _dateStyleId);
                 }
                 else if (columnInfo.IsInlineString)
                 {
@@ -467,7 +468,7 @@ public class ExcelExportSAXAdapterV2 : IDisposable
         {
             if (columnInfo.IsSharedString)
             {
-                CreateSharedStringCellSAX(openXmlWriter, columnIndex, rowIndex, value, _integerStyleId, isValueSharedString);
+                CreateSharedStringCellSAX(openXmlWriter, columnIndex, rowIndex, value, _integerStyleId);
             }
             else
             {
@@ -478,7 +479,7 @@ public class ExcelExportSAXAdapterV2 : IDisposable
         {
             if (columnInfo.IsSharedString)
             {
-                CreateSharedStringCellSAX(openXmlWriter, columnIndex, rowIndex, value, _textStyleId, isValueSharedString);
+                CreateSharedStringCellSAX(openXmlWriter, columnIndex, rowIndex, value, _textStyleId);
             }
             else if (columnInfo.IsInlineString)
             {
@@ -545,7 +546,7 @@ public class ExcelExportSAXAdapterV2 : IDisposable
         };
 
         openXmlWriter.WriteStartElement(_cellObject, openXmlAttributes);
-        openXmlWriter.WriteElement(new CellValue(value));
+        openXmlWriter.WriteElement(new CellValue(value));        
         openXmlWriter.WriteEndElement();
     }
 
