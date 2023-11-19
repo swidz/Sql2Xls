@@ -1,5 +1,4 @@
 ﻿using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Office2019.Excel.RichData2;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Extensions.Logging;
@@ -293,13 +292,10 @@ public class ExcelExportSAXAdapterV2 : IDisposable
             worksheetXmlWriter.WriteEndElement();
 
 
-            //Main
-            SheetData sheetData = new SheetData();
-            worksheetXmlWriter.WriteStartElement(sheetData);
+            //Main            
+            worksheetXmlWriter.WriteStartElement(new SheetData());
 
-            int rowIndex = 0;
-            int numOfRows = dt.Rows.Count;
-
+            int rowIndex = 0;           
             worksheetXmlWriter.WriteStartElement(new Row { RowIndex = (uint)rowIndex + 1 });
             for (int colIndex = 0; colIndex < _worksheetColumns.Count; colIndex++)
             {                
@@ -322,8 +318,8 @@ public class ExcelExportSAXAdapterV2 : IDisposable
             worksheetXmlWriter.WriteEndElement();
 
 
-            //Post
-            PageMargins pageMargins = new PageMargins
+            //Post           
+            worksheetXmlWriter.WriteElement(new PageMargins()
             {
                 Left = DoubleValue.FromDouble(0.7D),
                 Right = DoubleValue.FromDouble(0.7D),
@@ -331,12 +327,9 @@ public class ExcelExportSAXAdapterV2 : IDisposable
                 Bottom = DoubleValue.FromDouble(0.75D),
                 Header = DoubleValue.FromDouble(0.3D),
                 Footer = DoubleValue.FromDouble(0.3D)
-            };
+            });
 
-            worksheetXmlWriter.WriteElement(pageMargins);
-
-            HeaderFooter headerFooter = new HeaderFooter();
-            worksheetXmlWriter.WriteElement(headerFooter);
+            worksheetXmlWriter.WriteElement(new HeaderFooter());
             worksheetXmlWriter.WriteEndElement();            
         }
     }
@@ -405,7 +398,7 @@ public class ExcelExportSAXAdapterV2 : IDisposable
             new OpenXmlAttribute(string.Empty, "r", string.Empty, GetCellReference(columnIndex, rowIndex)),
             new OpenXmlAttribute(string.Empty, "t", string.Empty, "s"),
             new OpenXmlAttribute(string.Empty, "s", string.Empty, styleIndex.ToString())
-        };
+        };        
 
         openXmlWriter.WriteStartElement(_cellObject, openXmlAttributes);
         openXmlWriter.WriteElement(new CellValue(_sharedStringsCache[value].Position));
@@ -415,12 +408,7 @@ public class ExcelExportSAXAdapterV2 : IDisposable
     public static string GetCellReference(int columnIndex, int rowIndex)
     {
         return $"{WorksheetColumnInfo.GetColumnName(columnIndex)}{rowIndex + 1}";
-    }    
-
-    protected string GetSharedStringItem(string text)
-    {
-        return _sharedStringsCache[text].Position.ToString();
-    }
+    }        
 
     private void CreateCellFromDataTypeSAX(OpenXmlWriter openXmlWriter, int columnIndex, int rowIndex, object value)
     {
