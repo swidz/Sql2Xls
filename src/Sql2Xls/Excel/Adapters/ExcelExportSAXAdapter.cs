@@ -4,6 +4,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Extensions.Logging;
 using Sql2Xls.Excel.Extensions;
 using Sql2Xls.Excel.Parts;
+using Sql2Xls.Helpers;
 using System.Data;
 using System.IO.Packaging;
 
@@ -179,7 +180,7 @@ public class ExcelExportSAXAdapter : ExcelExportAdapter
             KeyValuePair.Create("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships")
         };
 
-        Workbook workbook = new Workbook();
+        var workbook = new Workbook();
         openXmlWriter.WriteStartElement(workbook, openXmlAttributes, namespaceDeclarations);
 
         openXmlWriter.WriteElement(new FileVersion
@@ -209,9 +210,7 @@ public class ExcelExportSAXAdapter : ExcelExportAdapter
         }
 
         openXmlWriter.WriteEndElement(); //Sheets
-        openXmlWriter.WriteEndElement(); //Workbook
-
-        openXmlWriter.Close();
+        openXmlWriter.WriteEndElement(); //Workbook        
 
         return workbook;
     }
@@ -219,7 +218,7 @@ public class ExcelExportSAXAdapter : ExcelExportAdapter
     private void CreateWorksheetPreSAX(SpreadsheetDocument document, WorksheetPart worksheetPart, OpenXmlWriter openXmlWriter)
     {        
         openXmlWriter.WriteStartDocument(true);
-
+        
         var openXmlAttributes = new List<OpenXmlAttribute>
         {
             new OpenXmlAttribute("Ignorable", "mc", "x14ac xr xr2 xr3"),
@@ -227,7 +226,7 @@ public class ExcelExportSAXAdapter : ExcelExportAdapter
         };
 
         var namespaceDeclarations = new List<KeyValuePair<string, string>>
-        {
+        {            
             KeyValuePair.Create("r", ExcelConstants.RelationshipsNamespace),
             KeyValuePair.Create("mc", ExcelConstants.MarkupCompatibility),
             KeyValuePair.Create("x14ac", ExcelConstants.SpreadsheetMlAc),
@@ -235,10 +234,9 @@ public class ExcelExportSAXAdapter : ExcelExportAdapter
             KeyValuePair.Create("xr2", ExcelConstants.SpreadsheetMlRev2),
             KeyValuePair.Create("xr3", ExcelConstants.SpreadsheetMlRev3)
         };
-
-        Worksheet worksheet = new Worksheet();
-        openXmlWriter.WriteStartElement(worksheet, openXmlAttributes, namespaceDeclarations);
-
+        
+        openXmlWriter.WriteStartElement(new Worksheet(), openXmlAttributes, namespaceDeclarations);
+                
         if (Context.CanUseRelativePaths)
         {
             worksheetPartRelationshipId = document.UpdateWorkbookRelationshipsPath(worksheetPart, ExcelConstants.WorksheetRelationshipType);
@@ -306,6 +304,44 @@ public class ExcelExportSAXAdapter : ExcelExportAdapter
         {
             CreateWorksheetPreSAX(document, worksheetPart, xmlWriter);
             CreateSheetDataSAX(xmlWriter, dataTable);
+
+            /*
+            if (!String.IsNullOrEmpty(Context.Password))
+            {
+                const int spinCount = 100000;
+                var saltValue = Guid.NewGuid().ToByteArray();
+                var hash = HashHelper.ComputePasswordHash(Context.Password, saltValue, spinCount);
+
+                xmlWriter.WriteStartElement(new SheetProtection()
+                {
+                    AlgorithmName = "SHA-512",
+                    HashValue = Convert.ToBase64String(hash),
+                    SaltValue = Convert.ToBase64String(saltValue),
+                    SpinCount = UInt32Value.FromUInt32(spinCount),
+                    Sheet = BooleanValue.FromBoolean(true),
+                    Objects = BooleanValue.FromBoolean(true),
+                    AutoFilter = BooleanValue.FromBoolean(true),
+                    DeleteColumns = BooleanValue.FromBoolean(true),
+                    DeleteRows = BooleanValue.FromBoolean(true),
+                    FormatCells = BooleanValue.FromBoolean(true),
+                    FormatColumns = BooleanValue.FromBoolean(true),
+                    FormatRows = BooleanValue.FromBoolean(true),
+                    InsertColumns = BooleanValue.FromBoolean(true),
+                    InsertRows = BooleanValue.FromBoolean(true),
+                    InsertHyperlinks = BooleanValue.FromBoolean(true),
+                    Password = HashHelper.HexPasswordConversion(Context.Password),
+                    PivotTables = BooleanValue.FromBoolean(true),
+                    Scenarios = BooleanValue.FromBoolean(true),
+                    SelectLockedCells = BooleanValue.FromBoolean(false),
+                    SelectUnlockedCells = BooleanValue.FromBoolean(false),
+                    Sort = BooleanValue.FromBoolean(true)
+                });
+
+                xmlWriter.WriteEndElement(); //SheetProtection
+                
+            }
+            */
+
             CreateWorksheetPostSAX(xmlWriter);
             xmlWriter.Close();
         }        
@@ -540,8 +576,8 @@ public class ExcelExportSAXAdapter : ExcelExportAdapter
     {
         SharedStringTable sharedStringTable = new SharedStringTable
         {
-            UniqueCount = UInt32Value.FromUInt32((uint)count),
-            Count = UInt32Value.FromUInt32((uint)dict.Count)
+            UniqueCount = UInt32Value.FromUInt32((uint)dict.Count),
+            Count = UInt32Value.FromUInt32((uint)count)
         };
 
         using var openXmlWriter = OpenXmlWriter.Create(sharedStringPart);

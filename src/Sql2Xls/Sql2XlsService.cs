@@ -105,7 +105,7 @@ public class Sql2XlsService : ISql2XlsService
             foreach (string folder in destinationFolders)
             {
                 string zipOutputPath = Path.Combine(parms.Options.ZipOutputFolder, Path.ChangeExtension(folder, "zip"));
-                this.CreateZipFile(folder, zipOutputPath);
+                CreateZipFile(folder, zipOutputPath);
             }
         }
 
@@ -429,7 +429,7 @@ public class Sql2XlsService : ISql2XlsService
             }
 
             _logger.LogTrace("Creating zip file {0}", destinationArchiveFileName);
-            ZipFile.CreateFromDirectory(sourceDirectoryName, destinationArchiveFileName, CompressionLevel.Fastest, false);
+            ZipFile.CreateFromDirectory(sourceDirectoryName, destinationArchiveFileName, CompressionLevel.Fastest, false);            
 
         }
         catch (Exception ex)

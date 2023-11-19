@@ -348,13 +348,15 @@ public class ExcelExportAdapter : IExcelExportAdapter, IDisposable
             }
         };
 
-        worksheet.SetAttribute(new OpenXmlAttribute("xr", "uid", "http://schemas.microsoft.com/office/spreadsheetml/2014/revision", "{00000000-0001-0000-0000-000000000000}"));
-        worksheet.AddNamespaceDeclaration("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
-        worksheet.AddNamespaceDeclaration("mc", "http://schemas.openxmlformats.org/markup-compatibility/2006");
-        worksheet.AddNamespaceDeclaration("x14ac", "http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac");
-        worksheet.AddNamespaceDeclaration("xr", "http://schemas.microsoft.com/office/spreadsheetml/2014/revision");
-        worksheet.AddNamespaceDeclaration("xr2", "http://schemas.microsoft.com/office/spreadsheetml/2015/revision2");
-        worksheet.AddNamespaceDeclaration("xr3", "http://schemas.microsoft.com/office/spreadsheetml/2016/revision3");
+        worksheet.SetAttribute(
+            new OpenXmlAttribute("xr", "uid", "http://schemas.microsoft.com/office/spreadsheetml/2014/revision", "{00000000-0001-0000-0000-000000000000}"));
+        
+        worksheet.AddNamespaceDeclaration("r", ExcelConstants.RelationshipsNamespace);
+        worksheet.AddNamespaceDeclaration("mc", ExcelConstants.MarkupCompatibility);
+        worksheet.AddNamespaceDeclaration("x14ac", ExcelConstants.SpreadsheetMlAc);
+        worksheet.AddNamespaceDeclaration("xr", ExcelConstants.SpreadsheetMlRev1);
+        worksheet.AddNamespaceDeclaration("xr2", ExcelConstants.SpreadsheetMlRev2);
+        worksheet.AddNamespaceDeclaration("xr3", ExcelConstants.SpreadsheetMlRev3);        
 
         if (Context.CanUseRelativePaths)
         {

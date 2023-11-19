@@ -19,9 +19,9 @@ public class Issue_0006_OutOfMemoryException
             .Select(s => s[rand.Next(s.Length)]).ToArray());
     }
 
-    private DataTable GetDataTable(int numberOfColumns, int numberOfRows, int fieldlen)
+    private DataTable GetDataTable(int numberOfColumns, int numberOfRows, int fieldlen, int seed = 0)
     {
-        Random rand = new Random();
+        Random rand = seed == 0 ? new Random() : new Random(seed);
 
         DataTable dt = new DataTable("MyTable");
         for (int j = 0; j < numberOfColumns; j++)
@@ -45,10 +45,10 @@ public class Issue_0006_OutOfMemoryException
     }
     
     [TestMethod]
-    [DataRow(154, 250_000, 20)]
-    public void T001_GenerateLargeExcel(int numberOfColumns, int numberOfRows, int fieldlen)
+    [DataRow(154, 250_000, 20, 600)]
+    public void T001_GenerateLargeExcel(int numberOfColumns, int numberOfRows, int fieldlen, int seed)
     {
-        var dt = GetDataTable(numberOfColumns, numberOfRows, fieldlen);
+        var dt = GetDataTable(numberOfColumns, numberOfRows, fieldlen, seed);
         
         var start = Stopwatch.StartNew();
         
@@ -57,7 +57,8 @@ public class Issue_0006_OutOfMemoryException
             Context = new ExcelExportContext()
             {
                 FileName = "c:\\datamigration\\excel\\test_001.xlsx",
-                SheetName = "MyTable"
+                SheetName = "MyTable",
+                Password = "MyPassword"
             }
         };
         
@@ -68,10 +69,10 @@ public class Issue_0006_OutOfMemoryException
     }
 
     [TestMethod]
-    [DataRow(154, 250_000, 20)]
-    public void T002_GenerateLargeExcel(int numberOfColumns, int numberOfRows, int fieldlen)
+    [DataRow(154, 250_000, 20, 600)]
+    public void T002_GenerateLargeExcel(int numberOfColumns, int numberOfRows, int fieldlen, int seed)
     {
-        var dt = GetDataTable(numberOfColumns, numberOfRows, fieldlen);
+        var dt = GetDataTable(numberOfColumns, numberOfRows, fieldlen, seed);
 
         var start = Stopwatch.StartNew();
         using var excelAdapter = new ExcelExportSAXAdapterV2(NullLogger<ExcelExportSAXAdapterV2>.Instance)
@@ -79,7 +80,8 @@ public class Issue_0006_OutOfMemoryException
             Context = new ExcelExportContext()
             {
                 FileName = "c:\\datamigration\\excel\\test_002.xlsx",
-                SheetName = "MyTable"
+                SheetName = "MyTable",
+                Password = "MyPassword"
             }
         };
 
@@ -87,5 +89,5 @@ public class Issue_0006_OutOfMemoryException
 
         var elapsed = start.Elapsed;
         Console.WriteLine($"Elapsed time: {elapsed.TotalSeconds}");
-    }
+    }      
 }

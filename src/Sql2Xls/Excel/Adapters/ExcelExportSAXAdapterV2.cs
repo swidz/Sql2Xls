@@ -4,8 +4,13 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Extensions.Logging;
 using Sql2Xls.Excel.Extensions;
 using Sql2Xls.Excel.Parts;
+using Sql2Xls.Extensions;
+using Sql2Xls.Helpers;
 using System.Data;
+using System.IO.Compression;
+using System.Text;
 using System.Xml;
+using System.Xml.Linq;
 
 namespace Sql2Xls.Excel.Adapters;
 
@@ -39,8 +44,7 @@ public class ExcelExportSAXAdapterV2 : IDisposable
     private string _themePartRelationshipId = "rId2";
     private string _workbookStylesPartRelationshipId = "rId3";
     private string _sharedStringPartRelationshipId = "rId4";
-
-    //private ExcelStylesPart _stylesPart;
+    
     private uint _integerStyleId;
     private uint _doubleStyleId ;
     private uint _dateStyleId;
@@ -64,11 +68,11 @@ public class ExcelExportSAXAdapterV2 : IDisposable
     }
 
     public void LoadFromDataTable(DataTable dt)
-    {
+    {        
         _worksheetColumns = WorksheetColumnCollection.Create(dt, Context);
 
-        using SpreadsheetDocument document = SpreadsheetDocument.Create(Context.FileName, SpreadsheetDocumentType.Workbook);
-
+        using var document = SpreadsheetDocument.Create(Context.FileName, SpreadsheetDocumentType.Workbook);        
+        
         CreateExtendedProperties(document);
         CreateCoreFileProperties(document);
 
@@ -88,8 +92,7 @@ public class ExcelExportSAXAdapterV2 : IDisposable
         _doubleStyleId = stylesPart.DoubleStyleId;
         _dateStyleId = stylesPart.DateStyleId;
         _textStyleId = stylesPart.TextStyleId;
-        _headerStyleIndex = stylesPart.HeaderStyleIndex;
-    
+        _headerStyleIndex = stylesPart.HeaderStyleIndex;        
 
         //var themePart = CreateThemePart(document, workbookPart);
         if (Context.CanCreateThemePart)
@@ -99,20 +102,17 @@ public class ExcelExportSAXAdapterV2 : IDisposable
         }
         
         //var sharedStringTablePart = CreateSharedStringTablePart(document);
-
         SharedStringTablePart sharedStringPart = document.WorkbookPart.AddNewPart<SharedStringTablePart>(_sharedStringPartRelationshipId);
         if (Context.CanUseRelativePaths)
         {
             _sharedStringPartRelationshipId = document.UpdateWorkbookRelationshipsPath(sharedStringPart, ExcelConstants.SharedStringsRelationshipType);
         }
 
-        //CreateSharedStringTable(document, sharedStringTablePart, dataTable);
-        //                      
-
+        //CreateSharedStringTable(document, sharedStringTablePart, dataTable);                            
+        int count = 0;
         for (int colIndex = 0; colIndex < _worksheetColumns.Count; colIndex++)
         {
             var columnInfo = _worksheetColumns[colIndex];
-
             if (!_sharedStringsCache.ContainsKey(columnInfo.ColumnName))
             {
                 _sharedStringsCache.Add(columnInfo.ColumnName, new SharedStringCacheItem
@@ -121,15 +121,20 @@ public class ExcelExportSAXAdapterV2 : IDisposable
                     Value = columnInfo.ColumnName
                 });
             }
+        }
+        count += _worksheetColumns.Count;
 
+        for (int colIndex = 0; colIndex < _worksheetColumns.Count; colIndex++)
+        {
+            var columnInfo = _worksheetColumns[colIndex];
             if (!columnInfo.IsSharedString)
-                continue;
+                continue;            
 
             foreach (DataRow dsrow in dt.Rows)
             {
                 object val = dsrow[colIndex];
 
-                if (val == DBNull.Value)
+                if (val is null || val == DBNull.Value)
                     continue;
 
                 var resultValue = columnInfo.GetStringValue(val);
@@ -141,14 +146,14 @@ public class ExcelExportSAXAdapterV2 : IDisposable
                         Value = resultValue 
                     });
                 }
-            }         
+            }
+            count += dt.Rows.Count;
         }
-
 
         var sharedStringTable = new SharedStringTable
         {
             UniqueCount = UInt32Value.FromUInt32((uint)_sharedStringsCache.Count),
-            Count = UInt32Value.FromUInt32((uint)_sharedStringsCache.Count)
+            Count = UInt32Value.FromUInt32((uint)count)
         };
 
         using var sharedStringXmlWriter = OpenXmlWriter.Create(sharedStringPart);
@@ -180,6 +185,7 @@ public class ExcelExportSAXAdapterV2 : IDisposable
         using var openXmlWriter = OpenXmlWriter.Create(workbookPart);
         {
             openXmlWriter.WriteStartDocument(true);
+
             var openXmlAttributes = new List<OpenXmlAttribute>(0);
             var namespaceDeclarations = new List<KeyValuePair<string, string>>(1)
             {
@@ -187,6 +193,26 @@ public class ExcelExportSAXAdapterV2 : IDisposable
             };
 
             var workbook = new Workbook();
+
+
+            /*
+            if (!String.IsNullOrEmpty(Context.Password))
+            {
+                const int spinCount = 100000;
+                var saltValue = Guid.NewGuid().ToByteArray();
+                var hash = HashHelper.ComputePasswordHash(Context.Password, saltValue, spinCount);
+
+                workbook.WorkbookProtection = new WorkbookProtection()
+                {
+                    WorkbookPassword = new HexBinaryValue(HashHelper.HexPasswordConversion(Context.Password)),
+                    WorkbookSaltValue = new Base64BinaryValue(Convert.ToBase64String(saltValue)),
+                    WorkbookSpinCount = new UInt32Value((uint)spinCount),
+                    WorkbookHashValue = new Base64BinaryValue(Convert.ToBase64String(hash)),
+                    WorkbookAlgorithmName = new StringValue("SHA-512"),                                       
+                };                
+            }
+            */
+                       
             openXmlWriter.WriteStartElement(workbook, openXmlAttributes, namespaceDeclarations);
 
             openXmlWriter.WriteElement(new FileVersion
@@ -209,14 +235,13 @@ public class ExcelExportSAXAdapterV2 : IDisposable
             openXmlWriter.WriteEndElement(); //BookViews
 
             openXmlWriter.WriteStartElement(new Sheets());
-
             foreach (var sheet in sheetsInfo)
             {
                 openXmlWriter.WriteElement(sheet);
             }
-
             openXmlWriter.WriteEndElement(); //Sheets
-            openXmlWriter.WriteEndElement(); //Workbook            
+
+            openXmlWriter.WriteEndElement(); //Workbook
         }
 
         //var worksheetPart = CreateWorksheetPart(workbookPart);
@@ -234,19 +259,23 @@ public class ExcelExportSAXAdapterV2 : IDisposable
             xmlWriter.Close();
         }  
         */
+
+
         using var worksheetXmlWriter = OpenXmlWriter.Create(worksheetPart);
         {
             //Pre
-            worksheetXmlWriter.WriteStartDocument(true);
+            worksheetXmlWriter.WriteStartDocument(true); //XML declaration
 
+            
             var openXmlAttributes = new List<OpenXmlAttribute>(2)
             {
                 new ("Ignorable", "mc", "x14ac xr xr2 xr3"),
                 new ("xr", "uid", ExcelConstants.SpreadsheetMlRev1, "{00000000-0001-0000-0000-000000000000}")
             };
 
-            var namespaceDeclarations = new List<KeyValuePair<string, string>>(6)
+            var namespaceDeclarations = new List<KeyValuePair<string, string>>(7)
             {
+                KeyValuePair.Create("", ExcelConstants.DefaultSpreadsheetNamespace),
                 KeyValuePair.Create("r", ExcelConstants.RelationshipsNamespace),
                 KeyValuePair.Create("mc", ExcelConstants.MarkupCompatibility),
                 KeyValuePair.Create("x14ac", ExcelConstants.SpreadsheetMlAc),
@@ -254,9 +283,8 @@ public class ExcelExportSAXAdapterV2 : IDisposable
                 KeyValuePair.Create("xr2", ExcelConstants.SpreadsheetMlRev2),
                 KeyValuePair.Create("xr3", ExcelConstants.SpreadsheetMlRev3)
             };
-
-            var worksheet = new Worksheet();
-            worksheetXmlWriter.WriteStartElement(worksheet, openXmlAttributes, namespaceDeclarations);
+            
+            worksheetXmlWriter.WriteStartElement(new Worksheet(), openXmlAttributes, namespaceDeclarations);                       
 
             if (Context.CanUseRelativePaths)
             {
@@ -270,7 +298,7 @@ public class ExcelExportSAXAdapterV2 : IDisposable
                     TabSelected = BooleanValue.FromBoolean(true),
                     WorkbookViewId = UInt32Value.FromUInt32(0U)
                 });
-            worksheetXmlWriter.WriteEndElement();
+            worksheetXmlWriter.WriteEndElement(); //SheetViews
 
             worksheetXmlWriter.WriteElement(
                 new SheetFormatProperties
@@ -288,8 +316,7 @@ public class ExcelExportSAXAdapterV2 : IDisposable
                     Width = DoubleValue.FromDouble(20D),
                     CustomWidth = BooleanValue.FromBoolean(true)
                 });
-
-            worksheetXmlWriter.WriteEndElement();
+            worksheetXmlWriter.WriteEndElement(); //Columns
 
 
             //Main            
@@ -301,7 +328,7 @@ public class ExcelExportSAXAdapterV2 : IDisposable
             {                
                 CreateSharedStringCellSAX(worksheetXmlWriter, colIndex, rowIndex, _worksheetColumns[colIndex].Caption, _headerStyleIndex);
             }
-            worksheetXmlWriter.WriteEndElement();
+            worksheetXmlWriter.WriteEndElement(); //Row
 
             rowIndex = 1;
             foreach (DataRow dsrow in dt.Rows)
@@ -311,12 +338,45 @@ public class ExcelExportSAXAdapterV2 : IDisposable
                 {
                     CreateCellFromDataTypeSAX(worksheetXmlWriter, colIndex, rowIndex, dsrow[colIndex]);
                 }
-                worksheetXmlWriter.WriteEndElement();
+                worksheetXmlWriter.WriteEndElement(); //Row
                 rowIndex++;
             }
 
-            worksheetXmlWriter.WriteEndElement();
+            worksheetXmlWriter.WriteEndElement(); //SheetData
 
+            /*
+            if(!String.IsNullOrEmpty(Context.Password))
+            {
+                const int spinCount = 100000;
+                var saltValue = Guid.NewGuid().ToByteArray();
+                var hash = HashHelper.ComputePasswordHash(Context.Password, saltValue, spinCount);
+
+                worksheetXmlWriter.WriteElement(new SheetProtection()
+                {
+                    AlgorithmName = "SHA-512",
+                    HashValue = Convert.ToBase64String(hash),
+                    SaltValue = Convert.ToBase64String(saltValue),
+                    SpinCount = UInt32Value.FromUInt32(spinCount),
+                    Sheet = BooleanValue.FromBoolean(true),
+                    Objects = BooleanValue.FromBoolean(true),
+                    AutoFilter = BooleanValue.FromBoolean(true),
+                    DeleteColumns = BooleanValue.FromBoolean(true),
+                    DeleteRows = BooleanValue.FromBoolean(true),
+                    FormatCells = BooleanValue.FromBoolean(true),
+                    FormatColumns = BooleanValue.FromBoolean(true),
+                    FormatRows = BooleanValue.FromBoolean(true),
+                    InsertColumns = BooleanValue.FromBoolean(true),
+                    InsertRows = BooleanValue.FromBoolean(true),
+                    InsertHyperlinks = BooleanValue.FromBoolean(true),                    
+                    Password = HashHelper.HexPasswordConversion(Context.Password),                    
+                    PivotTables = BooleanValue.FromBoolean(true),
+                    Scenarios = BooleanValue.FromBoolean(true),
+                    SelectLockedCells = BooleanValue.FromBoolean(false),
+                    SelectUnlockedCells = BooleanValue.FromBoolean(false),
+                    Sort = BooleanValue.FromBoolean(true)                                        
+                });                
+            }
+            */
 
             //Post           
             worksheetXmlWriter.WriteElement(new PageMargins()
@@ -330,7 +390,118 @@ public class ExcelExportSAXAdapterV2 : IDisposable
             });
 
             worksheetXmlWriter.WriteElement(new HeaderFooter());
-            worksheetXmlWriter.WriteEndElement();            
+
+
+
+
+            worksheetXmlWriter.WriteEndElement(); //Worksheet         
+        }
+
+        if (Context.CanFixContentTypes || Context.CanFixXmlDeclarations || Context.CanRemoveAliasFromDefaultNamespace)
+        {
+            using (var archive = ZipFile.Open(Context.FileName, ZipArchiveMode.Update))
+            {
+                if (Context.CanFixContentTypes)
+                {
+                    FixContentTypes(archive);
+                }
+
+                if (Context.CanRemoveAliasFromDefaultNamespace)
+                {
+                    RemoveAliasFromXMLAttributes(archive, "xl/sharedStrings.xml");
+                    RemoveAliasFromXMLAttributes(archive, "xl/styles.xml");
+                    RemoveAliasFromXMLAttributes(archive, "xl/workbook.xml");
+                    RemoveAliasFromXMLAttributes(archive, "xl/worksheets/sheet1.xml");
+                }
+
+                if (Context.CanFixXmlDeclarations)
+                {
+                    StandaloneXmlDeclarations(archive, "xl/_rels/workbook.xml.rels");
+                    StandaloneXmlDeclarations(archive, "_rels/.rels");
+                }
+            }
+        }
+    }
+
+    protected void RemoveAliasFromXMLAttributes(ZipArchive archive, string entryName)
+    {
+        _logger.LogTrace("Updateing {0}", entryName);
+        ZipArchiveEntry entry = archive.GetEntry(entryName);
+        StringBuilder sb;
+        using (StreamReader reader = new StreamReader(entry.Open()))
+        {
+            sb = new StringBuilder(reader.ReadToEnd());
+        }
+        entry.Delete();
+        entry = archive.CreateEntry(entryName);
+        sb = new StringBuilder(GetXMLWithDefaultNamespace(sb.ToString()));
+        using (StreamWriter writer = new StreamWriter(entry.Open()))
+        {
+            writer.Write(sb);
+        }
+    }
+
+    //https://github.com/OfficeDev/Open-XML-SDK/issues/90
+    protected string GetXMLWithDefaultNamespace(string outerXml, string defaultNamespace = ExcelConstants.DefaultSpreadsheetNamespace, string prefix = "x")
+    {
+        var xml = XDocument.Parse(outerXml);
+        if (xml.Root != null)
+        {
+            RemoveNamespacePrefix(xml.Root, prefix);
+
+            XNamespace xmlns = defaultNamespace;
+            xml.Root.Name = xmlns + xml.Root.Name.LocalName;
+        }
+
+        if (Context.CanFixXmlDeclarations)
+        {
+            xml.Declaration = new XDeclaration("1.0", "UTF-8", "yes");
+        }
+
+        return xml.ToStringWithDeclaration().Replace(" xmlns=\"\"", string.Empty);
+    }
+
+    public static void RemoveNamespacePrefix(XElement element, string prefix)
+    {
+        if (element.Name.Namespace != null)
+            element.Name = element.Name.LocalName;
+
+        var attributes = element.Attributes().ToArray();
+        element.RemoveAttributes();
+        foreach (var attr in attributes)
+        {
+            var newAttr = attr;
+            if (attr.Name.Namespace != null
+                && attr.Name.Namespace.NamespaceName == XNamespace.Xmlns.NamespaceName
+                && attr.Name.LocalName == prefix)
+            {
+                newAttr = new XAttribute("xmlns", attr.Value);
+            }
+            element.Add(newAttr);
+        };
+
+        foreach (var child in element.Descendants())
+            RemoveNamespacePrefix(child, prefix);
+    }
+
+    protected void StandaloneXmlDeclarations(ZipArchive archive, string entryName)
+    {
+        _logger.LogTrace("Updateing {0}", entryName);
+
+        ZipArchiveEntry entry = archive.GetEntry(entryName);
+        StringBuilder sb;
+        using (StreamReader reader = new StreamReader(entry.Open()))
+        {
+            sb = new StringBuilder(reader.ReadToEnd());
+        }
+        entry.Delete();
+        entry = archive.CreateEntry(entryName);
+        var xml = XDocument.Parse(sb.ToString());
+        xml.Declaration = new XDeclaration("1.0", "UTF-8", "yes");
+        sb = new StringBuilder(xml.ToStringWithDeclaration());
+        using (StreamWriter writer = new StreamWriter(entry.Open()))
+        {
+            writer.Write(sb);
         }
     }
 
@@ -418,7 +589,7 @@ public class ExcelExportSAXAdapterV2 : IDisposable
     }
 
     private void CreateCellSAX(OpenXmlWriter openXmlWriter, int columnIndex, int rowIndex, string value, WorksheetColumnInfo columnInfo)
-    {
+    {                               
         if (columnInfo.IsFloat)
         {
             if (columnInfo.IsSharedString)
@@ -536,6 +707,40 @@ public class ExcelExportSAXAdapterV2 : IDisposable
         openXmlWriter.WriteStartElement(_cellObject, openXmlAttributes);
         openXmlWriter.WriteElement(new CellValue(value));        
         openXmlWriter.WriteEndElement();
+    }
+
+    protected void FixContentTypes(ZipArchive archive)
+    {
+        _logger.LogTrace("Updating {0}", ExcelConstants.ContentTypesFilename);
+
+        var entry = archive.GetEntry(ExcelConstants.ContentTypesFilename);
+
+        //Replace the content
+        StringBuilder sb = new StringBuilder();
+        sb.Append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?>");
+        sb.Append("<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">");
+        sb.Append("<Default Extension=\"bin\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.printerSettings\"/>");
+        sb.Append("<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>");
+        sb.Append("<Default Extension=\"xml\" ContentType=\"application/xml\"/>");
+        sb.Append("<Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\" />");
+        sb.Append("<Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\" />");
+        if (Context.CanCreateThemePart)
+            sb.Append("<Override PartName=\"/xl/theme/theme1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.theme+xml\" />");
+        sb.Append("<Override PartName=\"/xl/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\" />");
+        sb.Append("<Override PartName=\"/xl/sharedStrings.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml\" />");
+        if (Context.CanCreateCoreFileProperties)
+            sb.Append("<Override PartName=\"/docProps/core.xml\" ContentType=\"application/vnd.openxmlformats-package.core-properties+xml\" />");
+        if (Context.CanCreateExtendedFileProperties)
+            sb.Append("<Override PartName=\"/docProps/app.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.extended-properties+xml\" />");
+        sb.Append("</Types>");
+
+        entry.Delete();
+        entry = archive.CreateEntry(ExcelConstants.ContentTypesFilename);
+        
+        using (StreamWriter writer = new StreamWriter(entry.Open()))
+        {
+            writer.Write(sb);
+        }
     }
 
     protected virtual void Dispose(bool disposing)

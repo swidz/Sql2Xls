@@ -18,7 +18,7 @@ public class ExcelExtendedFilePropertiesPart : ExcelPart
         OpenXmlWriter openXmlWriter = OpenXmlWriter.Create(extendedFilePropertiesPart);
         openXmlWriter.WriteStartDocument(true);
         openXmlWriter.WriteStartElement(new DocumentFormat.OpenXml.ExtendedProperties.Properties());
-        openXmlWriter.WriteElement(new DocumentFormat.OpenXml.ExtendedProperties.Application("Microsoft Excel"));
+        openXmlWriter.WriteElement(new DocumentFormat.OpenXml.ExtendedProperties.Application("Sql2Xls"));
         openXmlWriter.WriteElement(new DocumentFormat.OpenXml.ExtendedProperties.DocumentSecurity("0"));
         openXmlWriter.WriteElement(new DocumentFormat.OpenXml.ExtendedProperties.ApplicationVersion("14.0000"));
         openXmlWriter.WriteElement(new DocumentFormat.OpenXml.ExtendedProperties.SharedDocument("false"));
@@ -39,7 +39,7 @@ public class ExcelExtendedFilePropertiesPart : ExcelPart
         Document.AddNewPart<ExtendedFilePropertiesPart>(RelationshipId);
         Document.ExtendedFilePropertiesPart.Properties = new DocumentFormat.OpenXml.ExtendedProperties.Properties
         {
-            Application = new DocumentFormat.OpenXml.ExtendedProperties.Application("Microsoft Excel"),
+            Application = new DocumentFormat.OpenXml.ExtendedProperties.Application("Sql2Xls"),
             ApplicationVersion = new DocumentFormat.OpenXml.ExtendedProperties.ApplicationVersion("14.0000"),
             DocumentSecurity = new DocumentFormat.OpenXml.ExtendedProperties.DocumentSecurity("0"),
             SharedDocument = new DocumentFormat.OpenXml.ExtendedProperties.SharedDocument("false"),

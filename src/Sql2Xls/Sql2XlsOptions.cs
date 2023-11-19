@@ -76,6 +76,12 @@ public class Sql2XlsOptions : ISql2XlsOptions
         HelpText = "Log level: 0=Trace 1=Debug 2=Info 3=Warning 4=Error 5=Critical")]
     public int LogLevel { get; set; }
 
+    [Option('w', "password",
+        Required = false,
+        Default = null,
+        HelpText = "Password protect output files")]
+    public string Password { get; set; }
+
     [Option('x', "overwrite",
         Required = false,
         Default = false,

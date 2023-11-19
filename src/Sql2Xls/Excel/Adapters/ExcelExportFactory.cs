@@ -27,7 +27,7 @@ public class ExcelExportFactory : IExcelExportFactory
 
             case "SAX":
                 excelExport = new ExcelExportSAXAdapter(_loggerFactory.CreateLogger<ExcelExportSAXAdapter>());
-                break;
+                break;            
 
             case "ODC":
                 excelExport = new ExcelExportODCAdapter(_loggerFactory.CreateLogger<ExcelExportODCAdapter>());

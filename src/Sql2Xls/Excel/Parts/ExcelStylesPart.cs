@@ -51,13 +51,13 @@ public class ExcelStylesPart : ExcelPart
     {
         CellFormat cellFormat = new CellFormat();
 
-        if (fontIndex != null)
+        if (fontIndex is not null)
             cellFormat.FontId = fontIndex;
 
-        if (fillIndex != null)
+        if (fillIndex is not null)
             cellFormat.FillId = fillIndex;
 
-        if (numberFormatId != null)
+        if (numberFormatId is not null)
         {
             cellFormat.NumberFormatId = numberFormatId;
             cellFormat.ApplyNumberFormat = BooleanValue.FromBoolean(true);

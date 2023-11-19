@@ -148,6 +148,10 @@ public class WorksheetColumnInfo
 
     public string GetStringValue(object value)
     {
+
+        if (value is null || value == DBNull.Value)
+            return String.Empty;
+
         string strValue = value.ToString();
         string resultValue = strValue;
 

@@ -17,5 +17,6 @@
         string Source { get; }
         string WorksheetName { get; }
         string ZipOutputFolder { get; }
+        string Password { get; }
     }
 }

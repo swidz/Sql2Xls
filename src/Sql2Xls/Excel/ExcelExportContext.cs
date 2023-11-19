@@ -1,4 +1,6 @@
-﻿namespace Sql2Xls.Excel;
+﻿using System.ComponentModel;
+
+namespace Sql2Xls.Excel;
 
 public class ExcelExportContext
 {
@@ -23,13 +25,15 @@ public class ExcelExportContext
     public string ODCSqlStatement { get; set; }
     public string ODCTableName { get; set; }
 
+    public string Password { get; set; }
+
     public ExcelExportContext()
     {
         ProviderName = "SAX";
         CanIncludeHeader = true;        
         SheetName = ExcelConstants.DEFAULT_SHEET_NAME;
-        CanCreateExtendedFileProperties = false;
-        CanCreateCoreFileProperties = false;
+        CanCreateExtendedFileProperties = true;
+        CanCreateCoreFileProperties = true;
         CanUseRelativePaths = false;
         CanRemoveAliasFromDefaultNamespace = false;
         CanCreateThemePart = false;
@@ -40,6 +44,7 @@ public class ExcelExportContext
         ODCTableName = ExcelConstants.DEFAULT_SHEET_NAME;
         ODCConnectionString = string.Empty;
         ODCSqlStatement = string.Empty;
+        Password = null;
     }
 
 }
