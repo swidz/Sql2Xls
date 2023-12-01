@@ -45,6 +45,7 @@ public class Sql2XlsService : ISql2XlsService
             var sourceFilePath = Path.Combine(parms.SourceFolder, file);
             var name = GetName(file, parms.Options.WorksheetName);
             var destinationFilePath = GetDestinationFilePath(file, parms);
+            var destinationFilePathEncrypted = GetDestinationEncryptedFilePath(file, parms);
 
             _logger.LogTrace("Dataset name is {0}", name);
             _logger.LogTrace("Source file path is {sourceFilePath}", sourceFilePath);
@@ -57,7 +58,8 @@ public class Sql2XlsService : ISql2XlsService
                 Id = id,
                 DatasourceName = name,
                 SourceFilePath = sourceFilePath,
-                DestinationFilePath = destinationFilePath
+                DestinationFilePath = destinationFilePath,
+                DestinationFilePathEncrypted = destinationFilePathEncrypted
             });
 
             id++;
@@ -133,8 +135,31 @@ public class Sql2XlsService : ISql2XlsService
             _logger.LogTrace("Statement is: {0}", statement);
 
             CreateDocument(taskData.DatasourceName, statement, taskData.DestinationFilePath, parms);
-
             _logger.LogInformation("Output file {0} was created", taskData.DestinationFilePath);
+
+            if (String.IsNullOrEmpty(parms.Options.Password))
+            {                
+                if (File.Exists("External\\msoffice-crypt.exe"))
+                {
+                    var process = Process.Start("External\\msoffice-crypt.exe", String.Format("-e -p {0} {1} {2}", parms.Options.Password, taskData.DestinationFilePath, taskData.DestinationFilePathEncrypted));
+                    _logger.LogInformation("Output file {0} encryption started", taskData.DestinationFilePathEncrypted);
+                    process.WaitForExit();
+                    
+                    if (process.ExitCode != 0)
+                    {
+                        _logger.LogError("Output file {0} encryption failed", taskData.DestinationFilePathEncrypted);
+                    }
+                    else
+                    {
+                        _logger.LogInformation("Output file {0} was encrypted", taskData.DestinationFilePathEncrypted);
+                    }
+                }
+                else
+                {
+                    _logger.LogError(
+                        "msoffice-crypt.exe was not found. Cannot encrypt output files. Install msoffice-crypt from https://github.com/herumi/msoffice");
+                }
+            }                     
         }
         catch (Exception ex)
         {
@@ -406,6 +431,30 @@ public class Sql2XlsService : ISql2XlsService
         return destinationFilePath;
     }
 
+    private string GetDestinationEncryptedFilePath(string file, Sql2XlsServiceParameters parms)
+    {
+        string outputFilename = Path.GetFileNameWithoutExtension(file);
+        if (!String.IsNullOrEmpty(parms.Options.OutputFileSuffix))
+            outputFilename += parms.Options.OutputFileSuffix;
+        outputFilename += "_encrypted";
+
+        if (string.IsNullOrEmpty(Path.GetExtension(outputFilename)))
+        {
+            outputFilename += ".";
+            outputFilename += ApplicationConstants.OUTPUT_FILE_EXTENSION;
+        }
+        else
+        {
+            outputFilename = Path.ChangeExtension(outputFilename, ApplicationConstants.OUTPUT_FILE_EXTENSION);
+        }
+
+        string destinationFilePath = String.IsNullOrEmpty(parms.DestinationFile)
+            ? Path.Combine(parms.DestinationFolder, outputFilename)
+            : Path.Combine(parms.DestinationFolder, parms.DestinationFile);
+
+        return destinationFilePath;
+    }
+
     private void CheckOverwrite(string destinationFilePath, Sql2XlsServiceParameters parms)
     {
         if (!parms.Options.Overwrite && File.Exists(destinationFilePath))
@@ -461,6 +510,7 @@ public class Sql2XlsService : ISql2XlsService
         public int Id { get; init; }
         public string DatasourceName { get; init; }
         public string DestinationFilePath { get; init; }
+        public string DestinationFilePathEncrypted { get; init; }
         public string SourceFilePath { get; init; }
     }
 

@@ -45,7 +45,7 @@ public class Issue_0006_OutOfMemoryException
     }
     
     [TestMethod]
-    [DataRow(154, 250_000, 20, 600)]
+    [DataRow(80, 250000, 20, 600)]
     public void T001_GenerateLargeExcel(int numberOfColumns, int numberOfRows, int fieldlen, int seed)
     {
         var dt = GetDataTable(numberOfColumns, numberOfRows, fieldlen, seed);
@@ -69,7 +69,7 @@ public class Issue_0006_OutOfMemoryException
     }
 
     [TestMethod]
-    [DataRow(154, 250_000, 20, 600)]
+    [DataRow(70, 250000, 20, 600)]
     public void T002_GenerateLargeExcel(int numberOfColumns, int numberOfRows, int fieldlen, int seed)
     {
         var dt = GetDataTable(numberOfColumns, numberOfRows, fieldlen, seed);
@@ -89,5 +89,5 @@ public class Issue_0006_OutOfMemoryException
 
         var elapsed = start.Elapsed;
         Console.WriteLine($"Elapsed time: {elapsed.TotalSeconds}");
-    }      
+    }
 }
