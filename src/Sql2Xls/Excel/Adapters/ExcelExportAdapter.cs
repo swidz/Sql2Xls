@@ -236,7 +236,7 @@ public class ExcelExportAdapter : IExcelExportAdapter, IDisposable
                 resultValue = doubleValue.ToString(System.Globalization.CultureInfo.InvariantCulture);
             }
         }
-        else if (columnInfo.IsDate)
+        else if (columnInfo.IsDateTime)
         {
             if (DateTime.TryParse(strValue, out DateTime dateValue))
             {
@@ -844,7 +844,7 @@ public class ExcelExportAdapter : IExcelExportAdapter, IDisposable
                 dataCell = CreateValueCell(columnIndex, rowIndex, value, GetDoubleStyleId());
             }
         }
-        else if (columnInfo.IsDate)
+        else if (columnInfo.IsDateTime)
         {
 
             if (Context.DateTimeAsString)

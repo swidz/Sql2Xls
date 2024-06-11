@@ -45,7 +45,7 @@ public class Issue_0006_OutOfMemoryException
     }
     
     [TestMethod]
-    [DataRow(80, 250000, 20, 600)]
+    [DataRow(230, 250000, 30, 600)]
     public void T001_GenerateLargeExcel(int numberOfColumns, int numberOfRows, int fieldlen, int seed)
     {
         var dt = GetDataTable(numberOfColumns, numberOfRows, fieldlen, seed);
@@ -57,8 +57,7 @@ public class Issue_0006_OutOfMemoryException
             Context = new ExcelExportContext()
             {
                 FileName = "c:\\datamigration\\excel\\test_001.xlsx",
-                SheetName = "MyTable",
-                Password = "MyPassword"
+                SheetName = "MyTable"
             }
         };
         
@@ -69,8 +68,8 @@ public class Issue_0006_OutOfMemoryException
     }
 
     [TestMethod]
-    [DataRow(70, 250000, 20, 600)]
-    public void T002_GenerateLargeExcel(int numberOfColumns, int numberOfRows, int fieldlen, int seed)
+    [DataRow(230, 250000, 30, 600)]
+    public void T002_ExcelExportSAXAdapterV2(int numberOfColumns, int numberOfRows, int fieldlen, int seed)
     {
         var dt = GetDataTable(numberOfColumns, numberOfRows, fieldlen, seed);
 
@@ -80,8 +79,51 @@ public class Issue_0006_OutOfMemoryException
             Context = new ExcelExportContext()
             {
                 FileName = "c:\\datamigration\\excel\\test_002.xlsx",
-                SheetName = "MyTable",
-                Password = "MyPassword"
+                SheetName = "MyTable"                
+            }
+        };
+
+        excelAdapter.LoadFromDataTable(dt);
+
+        var elapsed = start.Elapsed;
+        Console.WriteLine($"Elapsed time: {elapsed.TotalSeconds}");
+    }
+
+    [TestMethod]
+    [DataRow(230, 250000, 30, 600)]
+    public void T003_ExcelExportLargeXlsxAdapter(int numberOfColumns, int numberOfRows, int fieldlen, int seed)
+    {
+        var dt = GetDataTable(numberOfColumns, numberOfRows, fieldlen, seed);
+
+        var start = Stopwatch.StartNew();
+        using var excelAdapter = new ExcelExportLargeXlsxAdapter(NullLogger<ExcelExportLargeXlsxAdapter>.Instance)
+        {
+            Context = new ExcelExportContext()
+            {
+                FileName = "c:\\datamigration\\excel\\test_003.xlsx",
+                SheetName = "MyTable"                
+            }
+        };
+
+        excelAdapter.LoadFromDataTable(dt);
+
+        var elapsed = start.Elapsed;
+        Console.WriteLine($"Elapsed time: {elapsed.TotalSeconds}");
+    }
+
+    [TestMethod]
+    [DataRow(230, 250000, 30, 600)]
+    public void T004_ExcelExportODCAdapter(int numberOfColumns, int numberOfRows, int fieldlen, int seed)
+    {
+        var dt = GetDataTable(numberOfColumns, numberOfRows, fieldlen, seed);
+
+        var start = Stopwatch.StartNew();
+        using var excelAdapter = new ExcelExportODCAdapter(NullLogger<ExcelExportODCAdapter>.Instance)
+        {
+            Context = new ExcelExportContext()
+            {
+                FileName = "c:\\datamigration\\excel\\test_004.xlsx",
+                SheetName = "MyTable"
             }
         };
 

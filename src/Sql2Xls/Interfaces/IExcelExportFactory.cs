@@ -5,5 +5,5 @@ namespace Sql2Xls.Interfaces;
 
 public interface IExcelExportFactory
 {
-    ExcelExportAdapter CreateAdapter(ExcelExportContext context);
+    IExcelExportAdapter CreateAdapter(ExcelExportContext context);
 }

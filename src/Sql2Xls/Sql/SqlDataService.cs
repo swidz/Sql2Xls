@@ -92,7 +92,7 @@ public class SqlDataService : ISqlDataService
                     result = new DataTable();
 
                     using (DbDataAdapter da = factory.CreateDataAdapter())
-                    {
+                    {                        
                         da.SelectCommand = command;
                         da.Fill(result);
                     }

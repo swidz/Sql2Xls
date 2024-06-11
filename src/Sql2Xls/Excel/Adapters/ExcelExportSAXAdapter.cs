@@ -398,7 +398,7 @@ public class ExcelExportSAXAdapter : ExcelExportAdapter
                 CreateValueCellSAX(openXmlWriter, columnIndex, rowIndex, value, GetDoubleStyleId());
             }
         }
-        else if (columnInfo.IsDate)
+        else if (columnInfo.IsDateTime)
         {
             if (Context.DateTimeAsString)
             {

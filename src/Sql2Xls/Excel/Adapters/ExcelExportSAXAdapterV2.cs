@@ -5,7 +5,6 @@ using Microsoft.Extensions.Logging;
 using Sql2Xls.Excel.Extensions;
 using Sql2Xls.Excel.Parts;
 using Sql2Xls.Extensions;
-using Sql2Xls.Helpers;
 using System.Data;
 using System.IO.Compression;
 using System.Text;
@@ -163,8 +162,10 @@ public class ExcelExportSAXAdapterV2 : IDisposable
             foreach (var item in _sharedStringsCache.Values.OrderBy(i => i.Position))
             {
                 sharedStringXmlWriter.WriteStartElement(_sharedStringItem);
+
+                //System.IO.IOException: 'Stream was too long.'
                 sharedStringXmlWriter.WriteElement(new Text(item.Value));
-                sharedStringXmlWriter.WriteEndElement();
+                sharedStringXmlWriter.WriteEndElement();                
             }
             sharedStringXmlWriter.WriteEndElement();            
         }
@@ -601,7 +602,7 @@ public class ExcelExportSAXAdapterV2 : IDisposable
                 CreateValueCellSAX(openXmlWriter, columnIndex, rowIndex, value, _doubleStyleId);
             }
         }
-        else if (columnInfo.IsDate)
+        else if (columnInfo.IsDateTime)
         {
             if (Context.DateTimeAsString)
             {
@@ -758,16 +759,8 @@ public class ExcelExportSAXAdapterV2 : IDisposable
         }
     }
 
-    // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-    // ~ExcelExportSAXAdapterV2()
-    // {
-    //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-    //     Dispose(disposing: false);
-    // }
-
     public void Dispose()
-    {
-        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+    {        
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }

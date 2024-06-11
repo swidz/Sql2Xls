@@ -29,7 +29,7 @@ public class ExcelExportContext
 
     public ExcelExportContext()
     {
-        ProviderName = "SAX";
+        ProviderName = "LARGEXLSX";
         CanIncludeHeader = true;        
         SheetName = ExcelConstants.DEFAULT_SHEET_NAME;
         CanCreateExtendedFileProperties = true;

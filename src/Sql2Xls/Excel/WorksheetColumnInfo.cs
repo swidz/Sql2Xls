@@ -6,7 +6,8 @@ public class WorksheetColumnInfo
 {
     public bool IsInteger { get; private set; }
     public bool IsFloat { get; private set; }
-    public bool IsDate { get; private set; }
+    public bool IsDateTime { get; private set; }
+    public bool IsBool { get; private set; }
     public string Code { get; private set; }
     public string ColumnName { get; private set; }
     public string Caption { get; private set; }
@@ -29,8 +30,9 @@ public class WorksheetColumnInfo
         Caption = dataColumn.Caption ?? dataColumn.ColumnName;
         Code = GetColumnName(idx);
         DataType = dataColumn.DataType;
+        IsBool = CheckIsBool(dataColumn.DataType);
         IsFloat = CheckIsFloat(dataColumn.DataType);
-        IsDate = CheckIsDate(dataColumn.DataType);
+        IsDateTime = CheckIsDate(dataColumn.DataType);
         IsSharedString = CheckIsSharedString(dataColumn.DataType);
         IsInlineString = CheckIsInlineString(dataColumn.DataType);
         IsInteger = CheckIsInteger(dataColumn.DataType);
@@ -53,7 +55,7 @@ public class WorksheetColumnInfo
         Code = GetColumnName(idx);
         DataType = record.GetFieldType(idx);
         IsFloat = CheckIsFloat(DataType);
-        IsDate = CheckIsDate(DataType);
+        IsDateTime = CheckIsDate(DataType);
         IsSharedString = CheckIsSharedString(DataType);
         IsInlineString = CheckIsInlineString(DataType);
         IsInteger = CheckIsInteger(DataType);
@@ -69,7 +71,14 @@ public class WorksheetColumnInfo
 
     private bool CheckIsFloat(Type dataType)
     {
-        if (dataType == typeof(decimal) || dataType == typeof(double) || dataType == typeof(float))
+        if (dataType == typeof(decimal) || dataType == typeof(double) || dataType == typeof(float) || dataType == typeof(float))
+            return true;
+        return false;
+    }
+
+    private bool CheckIsBool(Type dataType)
+    {
+        if (dataType == typeof(bool))
             return true;
         return false;
     }
@@ -162,7 +171,7 @@ public class WorksheetColumnInfo
                 resultValue = doubleValue.ToString(System.Globalization.CultureInfo.InvariantCulture);
             }
         }
-        else if (this.IsDate)
+        else if (this.IsDateTime)
         {
             if (DateTime.TryParse(strValue, out DateTime dateValue))
             {

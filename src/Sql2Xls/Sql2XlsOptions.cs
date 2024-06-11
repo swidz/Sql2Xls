@@ -13,7 +13,7 @@ public class Sql2XlsOptions : ISql2XlsOptions
     [Option('e', "engine",
         Required = false,
         Default = "SAX",
-        HelpText = "Excel export provider [\"SAX\" | \"ODC\" | \"LEGACY\"]")]
+        HelpText = "Excel export provider [\"SAX\" | \"ODC\" | \"LEGACY\" | \"LARGEXLSX\"]")]
     public string ExportEngine { get; set; }
 
     [Option('f', "createfolder",

@@ -15,9 +15,9 @@ public class ExcelExportFactory : IExcelExportFactory
         _logger = _loggerFactory.CreateLogger<ExcelExportFactory>();
     }
 
-    public ExcelExportAdapter CreateAdapter(ExcelExportContext context)
+    public IExcelExportAdapter CreateAdapter(ExcelExportContext context)
     {
-        ExcelExportAdapter excelExport;
+        IExcelExportAdapter excelExport;
 
         switch (context.ProviderName)
         {
@@ -31,6 +31,10 @@ public class ExcelExportFactory : IExcelExportFactory
 
             case "ODC":
                 excelExport = new ExcelExportODCAdapter(_loggerFactory.CreateLogger<ExcelExportODCAdapter>());
+                break;
+
+            case "LARGEXLSX":
+                excelExport = new ExcelExportLargeXlsxAdapter(_loggerFactory.CreateLogger<ExcelExportLargeXlsxAdapter>());
                 break;
 
             default:
