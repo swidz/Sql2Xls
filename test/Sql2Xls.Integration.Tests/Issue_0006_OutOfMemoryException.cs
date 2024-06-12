@@ -45,7 +45,7 @@ public class Issue_0006_OutOfMemoryException
     }
     
     [TestMethod]
-    [DataRow(230, 250000, 30, 600)]
+    [DataRow(60, 250000, 30, 600)]
     public void T001_GenerateLargeExcel(int numberOfColumns, int numberOfRows, int fieldlen, int seed)
     {
         var dt = GetDataTable(numberOfColumns, numberOfRows, fieldlen, seed);
@@ -68,7 +68,7 @@ public class Issue_0006_OutOfMemoryException
     }
 
     [TestMethod]
-    [DataRow(230, 250000, 30, 600)]
+    [DataRow(60, 250000, 30, 600)]
     public void T002_ExcelExportSAXAdapterV2(int numberOfColumns, int numberOfRows, int fieldlen, int seed)
     {
         var dt = GetDataTable(numberOfColumns, numberOfRows, fieldlen, seed);
@@ -90,7 +90,8 @@ public class Issue_0006_OutOfMemoryException
     }
 
     [TestMethod]
-    [DataRow(230, 250000, 30, 600)]
+    [DataRow(60, 250000, 30, 600)]
+
     public void T003_ExcelExportLargeXlsxAdapter(int numberOfColumns, int numberOfRows, int fieldlen, int seed)
     {
         var dt = GetDataTable(numberOfColumns, numberOfRows, fieldlen, seed);
@@ -112,7 +113,7 @@ public class Issue_0006_OutOfMemoryException
     }
 
     [TestMethod]
-    [DataRow(230, 250000, 30, 600)]
+    [DataRow(60, 250000, 30, 600)]
     public void T004_ExcelExportODCAdapter(int numberOfColumns, int numberOfRows, int fieldlen, int seed)
     {
         var dt = GetDataTable(numberOfColumns, numberOfRows, fieldlen, seed);

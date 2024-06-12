@@ -75,7 +75,7 @@ public class ExcelExportLargeXlsxAdapter : IExcelExportAdapter, IDisposable
         InitWorksheetColumns(dataTable);
 
         using var stream = new FileStream(Context.FileName, FileMode.Create, FileAccess.Write);
-        using var xlsxWriter = new XlsxWriter(stream);
+        using var xlsxWriter = new XlsxWriter(stream, useZip64: true, requireCellReferences: false);
 
         var headerStyle = new XlsxStyle(
             new XlsxFont("Segoe UI", 9, Color.White, bold: true),
@@ -91,12 +91,12 @@ public class ExcelExportLargeXlsxAdapter : IExcelExportAdapter, IDisposable
         var columns = new XlsxColumn[WorksheetColumns.Count];
         for (int colIndex = 0; colIndex < WorksheetColumns.Count; colIndex++)
         {
-            var columnInfo = WorksheetColumns[colIndex];
+            //var columnInfo = WorksheetColumns[colIndex];
             columns[colIndex] = XlsxColumn.Unformatted();            
         }
 
         xlsxWriter
-            .BeginWorksheet(string.IsNullOrEmpty(Context.SheetName) ? Context.SheetName : "Sheet 1", columns: columns)
+            .BeginWorksheet(string.IsNullOrEmpty(Context.SheetName) ? Context.SheetName : "Sheet1", columns: columns)
             .SetDefaultStyle(headerStyle);
                                             
         _logger.LogTrace("{0} Columns in total", WorksheetColumns.Count);
@@ -114,7 +114,10 @@ public class ExcelExportLargeXlsxAdapter : IExcelExportAdapter, IDisposable
             {
                 var val = dsrow[colIndex];
                 if (val is null || val == DBNull.Value)
+                {
+                    xlsxWriter.Write();
                     continue;
+                }
 
                 var columnInfo = WorksheetColumns[colIndex];
                 if (columnInfo.IsSharedString)
@@ -122,7 +125,9 @@ public class ExcelExportLargeXlsxAdapter : IExcelExportAdapter, IDisposable
                     var stringValue = columnInfo.GetStringValue(val);
 
                     if (String.IsNullOrEmpty(stringValue))
-                        continue;
+                    {
+                        xlsxWriter.Write();
+                    }
 
                     xlsxWriter.WriteSharedString(stringValue);
                 }
@@ -155,7 +160,7 @@ public class ExcelExportLargeXlsxAdapter : IExcelExportAdapter, IDisposable
             }
         }
 
-        xlsxWriter.SetAutoFilter(1, 1, xlsxWriter.CurrentRowNumber - 1, WorksheetColumns.Count);
+        //xlsxWriter.SetAutoFilter(1, 1, xlsxWriter.CurrentRowNumber - 1, WorksheetColumns.Count);
 
         _logger.LogTrace("{0} records with {1} columns has been added.", dataTable.Rows.Count, WorksheetColumns.Count);
                

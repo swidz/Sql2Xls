@@ -94,7 +94,7 @@ public class ExcelExportAdapter : IExcelExportAdapter, IDisposable
             Context.FileName, SpreadsheetDocumentType.Workbook))
         {
             CreateFromDataTable(document, dataTable);
-        }
+       }
 
         UpdateExcelArchive(Context.FileName);
     }
