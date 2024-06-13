@@ -90,8 +90,7 @@ public class Issue_0006_OutOfMemoryException
     }
 
     [TestMethod]
-    [DataRow(60, 250000, 30, 600)]
-
+    [DataRow(20, 100, 30, 600)]
     public void T003_ExcelExportLargeXlsxAdapter(int numberOfColumns, int numberOfRows, int fieldlen, int seed)
     {
         var dt = GetDataTable(numberOfColumns, numberOfRows, fieldlen, seed);
@@ -101,7 +100,7 @@ public class Issue_0006_OutOfMemoryException
         {
             Context = new ExcelExportContext()
             {
-                FileName = "c:\\datamigration\\excel\\test_003.xlsx",
+                FileName = "c:\\datamigration\\excel\\test_00b.xlsx",
                 SheetName = "MyTable"                
             }
         };

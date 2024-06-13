@@ -75,33 +75,24 @@ public class ExcelExportLargeXlsxAdapter : IExcelExportAdapter, IDisposable
         InitWorksheetColumns(dataTable);
 
         using var stream = new FileStream(Context.FileName, FileMode.Create, FileAccess.Write);
-        using var xlsxWriter = new XlsxWriter(stream, useZip64: true, requireCellReferences: false);
-
-        var headerStyle = new XlsxStyle(
-            new XlsxFont("Segoe UI", 9, Color.White, bold: true),
-            new XlsxFill(Color.FromArgb(0, 0x45, 0x86)),
-            XlsxStyle.Default.Border,
-            XlsxStyle.Default.NumberFormat,
-            XlsxAlignment.Default);
-
-        var highlightStyle = XlsxStyle.Default.With(new XlsxFill(Color.FromArgb(0xff, 0xff, 0x88)));
-        var dateStyle = XlsxStyle.Default.With(XlsxNumberFormat.ShortDateTime);
-        var borderedStyle = highlightStyle.With(
-            XlsxBorder.Around(new XlsxBorder.Line(Color.DeepPink, XlsxBorder.Style.Dashed)));
+        using var xlsxWriter = new XlsxWriter(stream, useZip64: true, requireCellReferences: false);        
 
         var columns = new XlsxColumn[WorksheetColumns.Count];
         for (int colIndex = 0; colIndex < WorksheetColumns.Count; colIndex++)
         {
-            //var columnInfo = WorksheetColumns[colIndex];
-            columns[colIndex] = XlsxColumn.Unformatted();            
+            columns[colIndex] = XlsxColumn.Formatted(30);
+            //columns[colIndex] = XlsxColumn.Unformatted();
         }
 
-        xlsxWriter
-            .BeginWorksheet(string.IsNullOrEmpty(Context.SheetName) ? Context.SheetName : "Sheet1", columns: columns);
+        xlsxWriter.BeginWorksheet(
+            string.IsNullOrEmpty(Context.SheetName) 
+                ? Context.SheetName 
+                : "Sheet1", 
+            columns: columns);
                                             
         _logger.LogTrace("{0} Columns in total", WorksheetColumns.Count);
 
-        xlsxWriter.BeginRow(style: headerStyle);
+        xlsxWriter.BeginRow();
         for (int colIndex = 0; colIndex < WorksheetColumns.Count; colIndex++)
         {
             xlsxWriter.Write(WorksheetColumns[colIndex].ColumnName);
@@ -159,11 +150,10 @@ public class ExcelExportLargeXlsxAdapter : IExcelExportAdapter, IDisposable
                 }
             }
             
-        }
+        }        
 
-        //xlsxWriter.SetAutoFilter(1, 1, xlsxWriter.CurrentRowNumber - 1, WorksheetColumns.Count);
-
-        _logger.LogTrace("{0} records with {1} columns has been added.", dataTable.Rows.Count, WorksheetColumns.Count);
+        _logger.LogTrace("{0} records with {1} columns has been added.", 
+            dataTable.Rows.Count, WorksheetColumns.Count);
                
     }    
 }
