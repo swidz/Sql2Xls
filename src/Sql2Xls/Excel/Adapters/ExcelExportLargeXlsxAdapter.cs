@@ -126,7 +126,8 @@ public class ExcelExportLargeXlsxAdapter : IExcelExportAdapter, IDisposable
 
                     if (String.IsNullOrEmpty(stringValue))
                     {
-                        xlsxWriter.Write();
+                        xlsxWriter.SkipColumns(1);
+                        continue;
                     }
 
                     xlsxWriter.WriteSharedString(stringValue);
