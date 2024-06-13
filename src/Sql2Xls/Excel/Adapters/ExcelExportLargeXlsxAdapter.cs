@@ -83,10 +83,11 @@ public class ExcelExportLargeXlsxAdapter : IExcelExportAdapter, IDisposable
             XlsxStyle.Default.Border,
             XlsxStyle.Default.NumberFormat,
             XlsxAlignment.Default);
-                var highlightStyle = XlsxStyle.Default.With(new XlsxFill(Color.FromArgb(0xff, 0xff, 0x88)));
-                var dateStyle = XlsxStyle.Default.With(XlsxNumberFormat.ShortDateTime);
-                var borderedStyle = highlightStyle.With(
-                    XlsxBorder.Around(new XlsxBorder.Line(Color.DeepPink, XlsxBorder.Style.Dashed)));
+
+        var highlightStyle = XlsxStyle.Default.With(new XlsxFill(Color.FromArgb(0xff, 0xff, 0x88)));
+        var dateStyle = XlsxStyle.Default.With(XlsxNumberFormat.ShortDateTime);
+        var borderedStyle = highlightStyle.With(
+            XlsxBorder.Around(new XlsxBorder.Line(Color.DeepPink, XlsxBorder.Style.Dashed)));
 
         var columns = new XlsxColumn[WorksheetColumns.Count];
         for (int colIndex = 0; colIndex < WorksheetColumns.Count; colIndex++)
@@ -96,8 +97,7 @@ public class ExcelExportLargeXlsxAdapter : IExcelExportAdapter, IDisposable
         }
 
         xlsxWriter
-            .BeginWorksheet(string.IsNullOrEmpty(Context.SheetName) ? Context.SheetName : "Sheet1", columns: columns)
-            .SetDefaultStyle(headerStyle);
+            .BeginWorksheet(string.IsNullOrEmpty(Context.SheetName) ? Context.SheetName : "Sheet1", columns: columns);
                                             
         _logger.LogTrace("{0} Columns in total", WorksheetColumns.Count);
 
@@ -114,8 +114,8 @@ public class ExcelExportLargeXlsxAdapter : IExcelExportAdapter, IDisposable
             {
                 var val = dsrow[colIndex];
                 if (val is null || val == DBNull.Value)
-                {
-                    xlsxWriter.Write();
+                {                    
+                    xlsxWriter.SkipColumns(1);
                     continue;
                 }
 
@@ -156,8 +156,8 @@ public class ExcelExportLargeXlsxAdapter : IExcelExportAdapter, IDisposable
                     var stringValue = columnInfo.GetStringValue(val);
                     xlsxWriter.Write(stringValue);
                 }
-
             }
+            
         }
 
         //xlsxWriter.SetAutoFilter(1, 1, xlsxWriter.CurrentRowNumber - 1, WorksheetColumns.Count);

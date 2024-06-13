@@ -137,7 +137,7 @@ public class Sql2XlsService : ISql2XlsService
             CreateDocument(taskData.DatasourceName, statement, taskData.DestinationFilePath, parms);
             _logger.LogInformation("Output file {0} was created", taskData.DestinationFilePath);
 
-            if (String.IsNullOrEmpty(parms.Options.Password))
+            if (!String.IsNullOrEmpty(parms.Options.Password))
             {                
                 if (File.Exists("External\\msoffice-crypt.exe"))
                 {
