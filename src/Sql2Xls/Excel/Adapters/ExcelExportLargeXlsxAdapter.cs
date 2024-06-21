@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Logging;
 using Sql2Xls.Interfaces;
 using System.Data;
-using System.Drawing;
 using TB.ComponentModel;
 
 namespace Sql2Xls.Excel.Adapters;
@@ -133,10 +132,10 @@ public class ExcelExportLargeXlsxAdapter : IExcelExportAdapter, IDisposable
                     decimal decimalValue = val.To<decimal>();
                     xlsxWriter.Write(decimalValue);
                 }
-                else if(columnInfo.IsInteger && val.IsConvertibleTo<int>())
+                else if(columnInfo.IsInteger && val.IsConvertibleTo<long>())
                 {
-                    int intValue = val.To<int>();
-                    xlsxWriter.Write(intValue);
+                    long longValue = val.To<long>();
+                    xlsxWriter.Write((decimal)longValue);
                 }
                 else if (columnInfo.IsBool && val.IsConvertibleTo<bool>())
                 {

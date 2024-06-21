@@ -730,7 +730,13 @@ public class ExcelExportAdapter : IExcelExportAdapter, IDisposable
                 if (val == DBNull.Value)
                     continue;
 
+                if (val is null)
+                    continue;                
+
                 string resultValue = GetStringValue(val, columnInfo);
+                if (String.IsNullOrEmpty(resultValue))
+                    continue;
+
                 if (!sharedStringsCache.ContainsKey(resultValue))
                 {
                     sharedStringsCache.Add(resultValue, new SharedStringCacheItem { Position = uniqueCount, Value = resultValue });
@@ -753,7 +759,15 @@ public class ExcelExportAdapter : IExcelExportAdapter, IDisposable
 
     protected string GetSharedStringItem(string text)
     {
-        return sharedStringsCache[text].Position.ToString();
+        if (String.IsNullOrEmpty(text))
+            return text;
+
+        if (sharedStringsCache.TryGetValue(text, out var result))
+        {
+            return result.Position.ToString();
+        }
+
+        return text;
     }
 
     protected Cell CreateStringCell(int columnIndex, int rowIndex, string cellValue, uint styleIndex = 0)

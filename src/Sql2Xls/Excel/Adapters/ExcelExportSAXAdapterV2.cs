@@ -132,11 +132,14 @@ public class ExcelExportSAXAdapterV2 : IDisposable
             foreach (DataRow dsrow in dt.Rows)
             {
                 object val = dsrow[colIndex];
-
-                if (val is null || val == DBNull.Value)
-                    continue;
+                
+                if (val == DBNull.Value || val is null)
+                    continue;                
 
                 var resultValue = columnInfo.GetStringValue(val);
+                if (String.IsNullOrEmpty(resultValue))
+                    continue;
+
                 if (!_sharedStringsCache.ContainsKey(resultValue))
                 {
                     _sharedStringsCache.Add(resultValue, new SharedStringCacheItem 

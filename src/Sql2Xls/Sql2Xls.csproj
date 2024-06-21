@@ -9,7 +9,7 @@
 	  <RuntimeIdentifier>win-x64</RuntimeIdentifier> <!-- win-x64;win-x86;linux-x64;osx-x64-->
 	  <Copyright>2023-2024 (c) Infovision Sebastian Widz</Copyright>
 	  <Company>Infovision Sebastian Widz</Company>
-	  <Version>2.0.0.0</Version>
+	  <Version>2.0.6</Version>
 	  <AssemblyTitle>Sql2Xls</AssemblyTitle>
   </PropertyGroup>
 
